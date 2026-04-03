@@ -20,9 +20,9 @@
 
 ## 2. 디자인 설정값
 
-- **DESIGN_VARIANCE:** 8 (1=완벽한 대칭, 10=아티스틱 카오스)
-- **MOTION_INTENSITY:** 6 (1=정적, 10=시네마틱)
-- **VISUAL_DENSITY:** 3 (1=아트갤러리 여백, 10=데이터 밀집)
+- **DESIGN_VARIANCE:** 6 (1=완벽한 대칭, 10=아티스틱 카오스)
+- **MOTION_INTENSITY:** 4 (1=정적, 10=시네마틱)
+- **VISUAL_DENSITY:** 5 (1=아트갤러리 여백, 10=데이터 밀집)
 
 ---
 
@@ -53,7 +53,7 @@ const pretendard = localFont({
 ### 타이포그래피 스케일
 - **한국어 헤드라인:** `text-4xl md:text-5xl lg:text-6xl tracking-tight leading-tight font-bold`
 - **한국어 텍스트 필수:** `word-break: keep-all` (Tailwind: `break-keep`) 항상 적용
-- **본문:** `text-base md:text-lg text-gray-600 leading-relaxed max-w-[65ch]`
+- **본문:** `text-base md:text-lg text-[#6B7280] leading-relaxed max-w-[65ch]`
 - **영문 디스플레이:** `tracking-tighter leading-none`
 
 ---
@@ -61,18 +61,33 @@ const pretendard = localFont({
 ## 4. 컬러 시스템
 
 ### 원칙
-- 페이지당 **액센트 컬러 최대 1개**, 채도 80% 미만
-- 웜 그레이 / 쿨 그레이 혼용 금지 — 하나로 통일
-- **다크 모드 기본값:** `bg-zinc-950`, `bg-slate-950`
+- **라이트 모드 기본값** — 다크 모드 금지
+- 페이지 배경: `#F8F8FA`
+- 카드 배경: `#FFFFFF`
+- 액센트 컬러 최대 1개, 채도 80% 미만
+- 웜 그레이 / 쿨 그레이 혼용 금지
 
 ### 금지
-- 보라/파랑 "AI 그라디언트" — 절대 금지
+- 다크 배경(`bg-zinc-950`, `bg-slate-950`) 기본값 — 절대 금지
 - 네온 글로우 효과 — 절대 금지
-- 순수 블랙(`#000000`) — `zinc-950` 또는 `slate-950` 사용
+- 순수 블랙(`#000000`) — `#1F2937` 사용
+- 보라/파랑 "AI 그라디언트" 남발 — Hero 카드 1곳에만 허용
 
-### 추천 팔레트
-- **베이스:** Zinc-900, Slate-950, Stone-100
-- **액센트 옵션:** Emerald, Electric Blue, Warm Amber, Deep Rose 중 하나만
+### 팔레트
+- **페이지 배경:** `#F8F8FA`
+- **카드 배경:** `#FFFFFF`
+- **테두리:** `#F0F0F2` (기본), `#E0E7FF` (호버)
+- **텍스트 강조:** `#1F2937`
+- **텍스트 보조:** `#6B7280`
+- **텍스트 힌트:** `#9CA3AF`
+- **액센트:** `#6366f1` (인디고) 또는 `#10b981` (에메랄드) 중 하나만
+- **성공:** `#22c55e`
+- **경고:** `#f59e0b`
+
+### Hero 그라디언트 (딱 1곳만 허용)
+```css
+background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+```
 
 ---
 
@@ -80,30 +95,88 @@ const pretendard = localFont({
 
 ### 컨테이너
 ```tsx
-<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div className="max-w-[720px] mx-auto px-5 pb-20">
 ```
 
 ### 반응형
 - 모바일 퍼스트 설계 (한국 웹 트래픽 70%+ 모바일)
 - **전체 높이:** `min-h-[100dvh]` 사용 — `h-screen` 절대 금지 (iOS Safari 버그)
-- **그리드 우선:** `grid grid-cols-1 md:grid-cols-3 gap-6` (복잡한 flex 퍼센트 계산 금지)
+- **그리드:** `grid grid-cols-1 md:grid-cols-3 gap-6`
 
-### 레이아웃 다양성 (DESIGN_VARIANCE 8 기준)
-- 중앙 정렬 Hero 섹션 **금지** — 대신:
-  - Split Screen (60/40 텍스트/비주얼)
-  - 좌측 텍스트 / 우측 에셋
-  - 비대칭 여백 + 드라마틱 네거티브 스페이스
-- **인접한 섹션은 반드시 다른 레이아웃 패턴 사용**
-- 3열 동일 카드 행 **금지** — Bento 그리드 또는 지그재그 사용
+### 레이아웃 원칙
+- 섹션 간격: `mb-6` 기본
+- 카드 모서리: `rounded-[14px]` 기본, Hero는 `rounded-[20px]`
+- 중앙 정렬보다 좌측 정렬 우선
+- 3열 동일 카드 — Bento 그리드 또는 `auto-fill minmax` 사용
 
 ---
 
 ## 6. 컴포넌트 패턴
 
+### 카드
+```tsx
+className="bg-white rounded-[14px] border border-[#F0F0F2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4"
+```
+
+### Sticky 헤더
+```tsx
+className="bg-white/80 backdrop-blur-[12px] border-b border-[#EBEBEC] h-14 sticky top-0 z-50 flex items-center justify-between px-6"
+```
+
+### Hero 카드
+```tsx
+className="rounded-[20px] p-7 relative overflow-hidden"
+style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)" }}
+// 내부 텍스트: text-white
+// 보조 텍스트: text-white/60
+```
+
+### 진행바
+```tsx
+// 외부
+className="h-[7px] rounded-full bg-white/20 overflow-hidden"
+// 내부
+className="h-full rounded-full bg-white transition-all duration-700"
+style={{ width: `${pct}%` }}
+```
+
+### 배지/태그
+```tsx
+className="text-xs font-semibold px-3 py-1 rounded-full"
+// bg: 카테고리 파스텔 색상
+// color: 카테고리 진한 색상
+```
+
+### 통계 카드 (숫자)
+```tsx
+className="bg-white rounded-[14px] p-4 text-center border border-[#F0F0F2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+// 숫자: text-[28px] font-extrabold tracking-tight (그라디언트 텍스트)
+// 라벨: text-[11px] text-[#9CA3AF] font-semibold mt-1
+```
+
+### CTA 버튼 (Primary)
+```tsx
+className="bg-[#6366f1] text-white px-8 py-4 rounded-[12px] text-base font-semibold transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] hover:bg-[#4f46e5]"
+// 최소 높이 48px (모바일 탭 타겟)
+```
+
+### 리스트 아이템
+```tsx
+className="flex items-center gap-3 p-[13px_16px] rounded-[13px] bg-white border border-[#F0F0F2] cursor-pointer transition-all duration-150 hover:-translate-y-[1px] hover:border-[#E0E7FF] hover:shadow-[0_4px_12px_rgba(99,102,241,0.08)]"
+// 완료 상태: bg-[#F0FDF4] border-[#BBF7D0]
+```
+
+### 체크박스
+```tsx
+// 미완료
+className="w-5 h-5 rounded-[6px] border-2 border-[#D1D5DB] flex-shrink-0 transition-all duration-200"
+// 완료
+className="w-5 h-5 rounded-[6px] border-2 border-[#22c55e] bg-[#22c55e] flex items-center justify-center flex-shrink-0"
+```
+
 ### 아이콘
 - Iconify Solar 세트 전용 사용
 ```tsx
-// npm install @iconify/react
 import { Icon } from '@iconify/react'
 <Icon icon="solar:arrow-right-linear" />
 ```
@@ -111,33 +184,17 @@ import { Icon } from '@iconify/react'
 ### 이미지
 - Next.js `<Image>` 컴포넌트 항상 사용
 - 플레이스홀더: `https://picsum.photos/seed/{descriptive_name}/{width}/{height}`
-- 아바타: `https://i.pravatar.cc/150?u={unique_name}`
 - Unsplash URL **절대 금지**
 
-### 글래스 효과
-```tsx
-className="backdrop-blur-xl bg-white/5 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
-```
-
-### CTA 버튼
-```tsx
-className="px-8 py-4 text-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2"
-// 최소 높이 48px (모바일 탭 타겟)
-```
-
-### 애니메이션 (MOTION_INTENSITY 6 기준)
+### 애니메이션
 ```css
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(2rem); }
+  from { opacity: 0; transform: translateY(1rem); }
   to { opacity: 1; transform: translateY(0); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
 }
 ```
 - `transform`, `opacity`만 애니메이션 — `top`, `left`, `width`, `height` 금지
-- 스크롤 트리거: `IntersectionObserver` 사용 — `window.scroll` 이벤트 금지
+- 스크롤 트리거: `IntersectionObserver` 사용
 
 ---
 
@@ -145,43 +202,47 @@ className="px-8 py-4 text-lg transition-all duration-300 hover:scale-[1.02] acti
 
 ### 글쓰기 원칙
 - **번역체 금지:** "지금 시작하세요" O / "시작을 하세요 지금" X
-- **경어체 통일:** 합니다/하세요체 유지, 반말/존댓말 혼용 금지
-- **이모지 절대 금지:** Iconify Solar 아이콘으로 대체
+- **경어체 통일:** 합니다/하세요체 유지
+- **이모지:** 꼭 필요한 곳에만 최소한으로 사용 (Iconify 우선)
 
 ### 금지 단어
 - "혁신적인", "획기적인", "차세대", "게임 체인저", "원활한" — 모두 금지
 - 구체적이고 명확한 언어 사용
 
-### CTA 카피 예시
-- "무료로 시작하기" / "3분만에 만들어보기" / "지금 바로 체험하기"
+### 숫자 표기
+- `47,200+` O / `50,000+` X (둥근 숫자 금지)
+- `4.87` O / `5.0` X
 
 ### 샘플 데이터
 - **이름:** "하윤서", "박도현", "이서진" (김철수, John Doe 금지)
-- **회사명:** "스텔라랩스", "베리파이", "루미너스" (넥서스, Acme 금지)
-- **숫자:** `47,200+` O / `50,000+` X (둥근 숫자 금지)
+- **회사명:** "스텔라랩스", "베리파이", "루미너스" (Acme 금지)
 
 ---
 
-## 8. 섹션 라이브러리
+## 8. 페이지 구성 패턴
 
-### Hero
-- **Split Hero:** 60/40 텍스트/비주얼
-- **Full-Bleed:** 전체화면 + 오버레이 텍스트
-- **Minimal Statement:** 초대형 타이포그래피 + 극단적 여백
+### 표준 페이지 구조
+```
+[Sticky 헤더] h-14
+[Hero 카드] rounded-[20px] 그라디언트
+[통계 카드 3열]
+[필터/카테고리]
+[리스트 or 그리드]
+[푸터 메시지]
+```
 
-### Features
-- **Bento Grid:** 비대칭 그리드 (2fr 1fr 1fr)
-- **Zig-Zag:** 이미지좌/텍스트우 → 텍스트좌/이미지우 교대
-- **Comparison:** Before vs After 또는 Us vs Them
+### 통계 표시
+- 3열 그리드: 전체 / 완료 / 남은 항목
+- 숫자는 크게 (28px+), 라벨은 작게 (11px)
+- 각 숫자에 의미 있는 색상 (인디고, 에메랄드, 앰버)
 
-### Social Proof
-- **Logo Cloud:** 자동 스크롤 마키 + 호버시 컬러
-- **Testimonial Masonry:** 스태거드 카드 높이
-- **Metrics Bar:** 숫자 카운팅 애니메이션
-
-### CTA
-- **Full-Bleed:** 다크 배경 + 대형 텍스트 + 글로우 버튼
-- **Sticky Bottom:** 스크롤 후 등장 고정 하단 바
+### 카테고리 필터
+```tsx
+className="grid gap-2"
+style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}
+// 선택된 카테고리: 카테고리 색상 배경 + 흰 텍스트 + shadow
+// 미선택: 흰 배경 + 카테고리 색상 테두리
+```
 
 ---
 
@@ -207,7 +268,7 @@ import { createServerClient } from '@supabase/ssr'
 
 ## 10. 코딩 컨벤션
 
-- 파일명: `kebab-case` (컴포넌트도 동일)
+- 파일명: `kebab-case`
 - 컴포넌트: `PascalCase`
 - 함수/변수: `camelCase`
 - 상수: `UPPER_SNAKE_CASE`
