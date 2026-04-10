@@ -46,14 +46,13 @@ const pretendard = localFont({
 ```
 또는 CDN 방식:
 ```tsx
-// app/layout.tsx <head>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" />
 ```
 
 ### 타이포그래피 스케일
 - **한국어 헤드라인:** `text-4xl md:text-5xl lg:text-6xl tracking-tight leading-tight font-bold`
 - **한국어 텍스트 필수:** `word-break: keep-all` (Tailwind: `break-keep`) 항상 적용
-- **본문:** `text-base md:text-lg text-[#6B7280] leading-relaxed max-w-[65ch]`
+- **본문:** `text-base md:text-lg leading-relaxed max-w-[65ch]` + `Content/Secondary` 컬러
 - **영문 디스플레이:** `tracking-tighter leading-none`
 
 ---
@@ -62,31 +61,190 @@ const pretendard = localFont({
 
 ### 원칙
 - **라이트 모드 기본값** — 다크 모드 금지
-- 페이지 배경: `#F8F8FA`
-- 카드 배경: `#FFFFFF`
-- 액센트 컬러 최대 1개, 채도 80% 미만
+- 채도 있는 색상의 불투명도 조정 금지 — NeutralLight / NeutralDark 계열만 허용
 - 웜 그레이 / 쿨 그레이 혼용 금지
+- 액센트 컬러는 KongnamuGreen 단일 사용
 
-### 금지
-- 다크 배경(`bg-zinc-950`, `bg-slate-950`) 기본값 — 절대 금지
-- 네온 글로우 효과 — 절대 금지
-- 순수 블랙(`#000000`) — `#1F2937` 사용
-- 보라/파랑 "AI 그라디언트" 남발 — Hero 카드 1곳에만 허용
+---
 
-### 팔레트
-- **페이지 배경:** `#F8F8FA`
-- **카드 배경:** `#FFFFFF`
-- **테두리:** `#F0F0F2` (기본), `#E0E7FF` (호버)
-- **텍스트 강조:** `#1F2937`
-- **텍스트 보조:** `#6B7280`
-- **텍스트 힌트:** `#9CA3AF`
-- **액센트:** `#6366f1` (인디고) 또는 `#10b981` (에메랄드) 중 하나만
-- **성공:** `#22c55e`
-- **경고:** `#f59e0b`
+### 4-1. 팔레트 (Primitive Tokens)
 
-### Hero 그라디언트 (딱 1곳만 허용)
+#### KongnamuGreen (브랜드 Primary)
+| Token | HEX |
+|-------|-----|
+| Green50 | `#F4F6E0` |
+| Green100 | `#E6EBB8` |
+| Green200 | `#CEDA80` |
+| Green500 | `#A0B020` |
+| Green800 | `#7C8C03` |
+| Green900 | `#5A6602` |
+
+#### Neutral
+| Token | HEX |
+|-------|-----|
+| Neutral10 | `#FAFAFA` |
+| Neutral50 | `#F5F5F5` |
+| Neutral100 | `#E6E6E6` |
+| Neutral200 | `#DCDCDC` |
+| Neutral300 | `#BBBBBB` |
+| Neutral400 | `#999999` |
+| Neutral500 | `#8B8B8B` |
+| Neutral600 | `#707070` |
+| Neutral700 | `#5C5C5C` |
+| Neutral800 | `#474747` |
+| Neutral900 | `#222222` |
+
+#### Common
+| Token | HEX |
+|-------|-----|
+| Common100 | `#FFFFFF` |
+| Common0 | `#000000` |
+
+#### 지원 컬러
+| Token | HEX | 용도 |
+|-------|-----|------|
+| Red50 | `#FFF5F5` | Critical Alt |
+| Red800 | `#F94239` | Critical / Error |
+| Red900 | `#EA2013` | Critical Hover |
+| Yellow50 | `#FFF4D8` | Warning Alt |
+| Yellow800 | `#FFC83B` | Rating / Warning |
+| Yellow900 | `#FFB803` | Warning Hover |
+| BenefitGreen50 | `#E7F7F3` | Benefit Alt |
+| BenefitGreen800 | `#01A484` | Benefit (무료취소 등) |
+| Navy10 | `#F5F7FA` | Background Secondary |
+| Navy500 | `#49627A` | Neutral Info |
+
+#### NeutralLight (투명도 계열, 밝은 배경 위)
+```
+NeutralLight88 = rgba(255,255,255,0.88)
+NeutralLight72 = rgba(255,255,255,0.72)
+NeutralLight48 = rgba(255,255,255,0.48)
+NeutralLight24 = rgba(255,255,255,0.24)
+NeutralLight16 = rgba(255,255,255,0.16)
+NeutralLight8  = rgba(255,255,255,0.08)
+NeutralLight0  = rgba(255,255,255,0)
+```
+
+#### NeutralDark (투명도 계열, 오버레이용)
+```
+NeutralDark80 = rgba(0,0,0,0.80)
+NeutralDark64 = rgba(0,0,0,0.64)
+NeutralDark48 = rgba(0,0,0,0.48)
+NeutralDark32 = rgba(0,0,0,0.32)
+NeutralDark16 = rgba(0,0,0,0.16)
+NeutralDark8  = rgba(0,0,0,0.08)
+NeutralDark0  = rgba(0,0,0,0)
+```
+
+---
+
+### 4-2. 시멘틱 컬러 (Semantic Tokens)
+
+컴포넌트 구현 시 팔레트 HEX 직접 사용 금지. 반드시 시멘틱 토큰 이름 기준으로 작성.
+
+#### Content (텍스트 & 아이콘)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Content/Primary | Neutral900 | `#222222` | 기본 텍스트, 아이콘 |
+| Content/Secondary | Neutral500 | `#8B8B8B` | 보조 텍스트 |
+| Content/Tertiary | Neutral300 | `#BBBBBB` | 힌트 텍스트 |
+| Content/Placeholder | Neutral400 | `#999999` | Placeholder |
+| Content/Disabled | Neutral200 | `#DCDCDC` | Disabled |
+| Content/InversePrimary | Common100 | `#FFFFFF` | 컬러 배경 위 기본 텍스트 |
+| Content/InverseSecondary | NeutralLight72 | `rgba(255,255,255,0.72)` | 컬러 배경 위 보조 텍스트 |
+| Content/Interactive | Green800 | `#7C8C03` | 인터랙티브 텍스트, 링크 |
+| Content/Highlighted | Green800 | `#7C8C03` | 강조 텍스트 |
+| Content/Critical | Red800 | `#F94239` | 에러, 경고 텍스트 |
+
+#### Background (배경)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Background/Primary | Common100 | `#FFFFFF` | 페이지, 카드, 리스트 기본 |
+| Background/Secondary | Navy10 | `#F5F7FA` | 페이지, 카드 Sub |
+| Background/InversePrimary | Neutral900 | `#222222` | Snackbar, Tooltip |
+| Background/TableHeader | Navy10 | `#F5F7FA` | 테이블 헤더 |
+| Background/TableHover | Neutral10 | `#FAFAFA` | 테이블 hover |
+
+#### Background/Input (입력 요소 배경)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Background/Input/Normal | Neutral50 | `#F5F5F5` | Input 기본 |
+| Background/Input/Contrast | Common100 | `#FFFFFF` | Input White 타입 |
+| Background/Input/Hover | Neutral100 | `#E6E6E6` | Input hover |
+| Background/Input/Error | Red50 | `#FFF5F5` | Input 에러 배경 |
+| Background/Input/ErrorHover | Red100 | `#FFEDEA` | Input 에러 hover |
+| Background/Input/Disabled | Neutral10 | `#FAFAFA` | Input disabled |
+
+#### Background/Overlay (오버레이)
+| Token | 참조 팔레트 | 용도 |
+|-------|------------|------|
+| Background/Overlay/DarkPrimary | NeutralDark48 | Dialog 기본 딤 |
+| Background/Overlay/DarkSecondary | NeutralDark64 | Dialog 강조 딤 |
+| Background/Overlay/DarkTertiary | NeutralDark80 | Bottom sheet 딤 |
+| Background/Overlay/LightPrimary | NeutralLight48 | 밝은 오버레이 |
+
+#### Border (테두리)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Border/Primary | Neutral100 | `#E6E6E6` | Divider 기본 |
+| Border/Secondary | Neutral200 | `#DCDCDC` | 강조 구분선, 카드 outline |
+| Border/PrimaryActivated | Green800 | `#7C8C03` | 검색바 활성 outline |
+| Border/SecondaryActivated | Neutral900 | `#222222` | Input 활성 outline |
+| Border/Selected | Green200 | `#CEDA80` | Selected 카드 outline |
+| Border/Disabled | NeutralLight88 | `rgba(255,255,255,0.88)` | Disabled outline |
+| Border/Critical | Red800 | `#F94239` | 에러 outline |
+| Border/InversePrimary | Common100 | `#FFFFFF` | 배경과 시각적 분리 |
+
+#### Button (버튼)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Button/Primary | Green800 | `#7C8C03` | Primary 버튼 배경 |
+| Button/PrimaryHover | Green900 | `#5A6602` | Primary hover |
+| Button/Highlight | Common100 | `#FFFFFF` | Highlight 버튼 |
+| Button/HighlightOutline | Green800 | `#7C8C03` | Highlight outline |
+| Button/Secondary | Neutral50 | `#F5F5F5` | Secondary 버튼 |
+| Button/SecondaryHover | Neutral100 | `#E6E6E6` | Secondary hover |
+| Button/Destructive | Red800 | `#F94239` | 삭제/위험 버튼 |
+| Button/DestructiveHover | Red900 | `#EA2013` | 삭제 hover |
+| Button/Disabled | Neutral10 | `#FAFAFA` | Disabled 버튼 배경 |
+| Button/Green | Green50 | `#F4F6E0` | Subtle Green 버튼 |
+| Button/GreenOutline | Green200 | `#CEDA80` | Subtle Green outline |
+| Button/GreenHover | Green100 | `#E6EBB8` | Subtle Green hover |
+
+#### Support (상태/정보 컬러)
+| Token | 참조 팔레트 | HEX | 용도 |
+|-------|------------|-----|------|
+| Support/Positive | Green800 | `#7C8C03` | 완료, 정보 강조 |
+| Support/PositiveAlt | Green100 | `#E6EBB8` | 완료 배경 |
+| Support/Warning | Yellow900 | `#FFB803` | 주의 정보 |
+| Support/WarningAlt | Yellow50 | `#FFF4D8` | 주의 배경 |
+| Support/Critical | Red800 | `#F94239` | 에러, 위험 |
+| Support/CriticalAlt | Red50 | `#FFF5F5` | 에러 배경 |
+| Support/Benefit | BenefitGreen800 | `#01A484` | 무료취소, 혜택 강조 |
+| Support/BenefitAlt | BenefitGreen50 | `#E7F7F3` | 혜택 배경 |
+| Support/Neutral | Navy500 | `#49627A` | 고정 정보 텍스트 |
+| Support/NeutralAlt | Navy10 | `#F5F7FA` | 고정 정보 배경 |
+| Support/Rating | Yellow800 | `#FFC83B` | 별점 아이콘 활성 |
+| Support/RatingAlt | Neutral200 | `#DCDCDC` | 별점 아이콘 기본 |
+
+#### Support/Skeleton (로딩)
+| Token | 용도 |
+|-------|------|
+| Support/Skeleton/Base | Navy10 — 스켈레톤 기본 배경 |
+| Support/Skeleton/Shade | Neutral50 → NeutralLight72 → Neutral50 그라디언트 |
+
+---
+
+### 4-3. 그라디언트
 ```css
-background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+/* Hero (딱 1곳만 허용) */
+background: linear-gradient(135deg, #7C8C03, #A0B020, #CEDA80);
+
+/* 다크 오버레이 */
+background: linear-gradient(to bottom, rgba(0,0,0,0.48), rgba(0,0,0,0));
+
+/* 스켈레톤 shimmer */
+background: linear-gradient(90deg, #F5F5F5 0%, rgba(255,255,255,0.72) 50%, #F5F5F5 100%);
 ```
 
 ---
@@ -100,8 +258,8 @@ background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
 
 ### 반응형
 - 모바일 퍼스트 설계 (한국 웹 트래픽 70%+ 모바일)
-- **전체 높이:** `min-h-[100dvh]` 사용 — `h-screen` 절대 금지 (iOS Safari 버그)
-- **그리드:** `grid grid-cols-1 md:grid-cols-3 gap-6`
+- **전체 높이:** `min-h-[100dvh]` — `h-screen` 절대 금지 (iOS Safari 버그)
+- **그리드:** `grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6`
 
 ### 레이아웃 원칙
 - 섹션 간격: `mb-6` 기본
@@ -113,65 +271,170 @@ background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
 
 ## 6. 컴포넌트 패턴
 
-### 카드
+컴포넌트 구현 시 시멘틱 토큰 주석을 함께 명시한다.
+
+### 카드 (기본)
 ```tsx
-className="bg-white rounded-[14px] border border-[#F0F0F2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4"
+// Background/Primary + Border/Primary
+className="bg-white rounded-[14px] border border-[#E6E6E6] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4"
+```
+
+### 카드 (Selected)
+```tsx
+// Background/Primary + Border/Selected
+className="bg-white rounded-[14px] border-2 border-[#CEDA80] shadow-[0_4px_12px_rgba(124,140,3,0.08)] p-4"
 ```
 
 ### Sticky 헤더
 ```tsx
-className="bg-white/80 backdrop-blur-[12px] border-b border-[#EBEBEC] h-14 sticky top-0 z-50 flex items-center justify-between px-6"
+// Background/Primary NeutralLight88 + Border/Primary
+className="bg-white/80 backdrop-blur-[12px] border-b border-[#E6E6E6] h-14 sticky top-0 z-50 flex items-center justify-between px-6"
 ```
 
 ### Hero 카드
 ```tsx
+// 그라디언트 (전체 페이지에서 딱 1곳)
 className="rounded-[20px] p-7 relative overflow-hidden"
-style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7)" }}
-// 내부 텍스트: text-white
-// 보조 텍스트: text-white/60
-```
-
-### 진행바
-```tsx
-// 외부
-className="h-[7px] rounded-full bg-white/20 overflow-hidden"
-// 내부
-className="h-full rounded-full bg-white transition-all duration-700"
-style={{ width: `${pct}%` }}
-```
-
-### 배지/태그
-```tsx
-className="text-xs font-semibold px-3 py-1 rounded-full"
-// bg: 카테고리 파스텔 색상
-// color: 카테고리 진한 색상
-```
-
-### 통계 카드 (숫자)
-```tsx
-className="bg-white rounded-[14px] p-4 text-center border border-[#F0F0F2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-// 숫자: text-[28px] font-extrabold tracking-tight (그라디언트 텍스트)
-// 라벨: text-[11px] text-[#9CA3AF] font-semibold mt-1
+style={{ background: "linear-gradient(135deg, #7C8C03, #A0B020, #CEDA80)" }}
+// 내부 텍스트: Content/InversePrimary = text-white
+// 보조 텍스트: Content/InverseSecondary = text-white/70
 ```
 
 ### CTA 버튼 (Primary)
 ```tsx
-className="bg-[#6366f1] text-white px-8 py-4 rounded-[12px] text-base font-semibold transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] hover:bg-[#4f46e5]"
+// Button/Primary → Button/PrimaryHover
+className="bg-[#7C8C03] text-white px-8 py-4 rounded-[12px] text-base font-semibold
+           transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] hover:bg-[#5A6602]"
 // 최소 높이 48px (모바일 탭 타겟)
+```
+
+### 버튼 (Secondary)
+```tsx
+// Button/Secondary → Button/SecondaryHover
+className="bg-[#F5F5F5] text-[#222222] px-6 py-3 rounded-[12px] text-sm font-semibold
+           transition-all duration-150 hover:bg-[#E6E6E6] active:scale-[0.98]"
+```
+
+### 버튼 (Subtle Green)
+```tsx
+// Button/Green + Button/GreenOutline
+className="bg-[#F4F6E0] text-[#7C8C03] border border-[#CEDA80] px-6 py-3 rounded-[12px]
+           text-sm font-semibold transition-all duration-150 hover:bg-[#E6EBB8]"
+```
+
+### 버튼 (Destructive)
+```tsx
+// Button/Destructive → Button/DestructiveHover
+className="bg-[#F94239] text-white px-6 py-3 rounded-[12px] text-sm font-semibold
+           transition-all duration-150 hover:bg-[#EA2013] active:scale-[0.98]"
+```
+
+### Input (기본)
+```tsx
+// Background/Input/Normal + Border/Primary → Border/SecondaryActivated
+className="w-full bg-[#F5F5F5] border border-[#E6E6E6] rounded-[10px] px-4 py-3 text-sm
+           text-[#222222] placeholder:text-[#999999]
+           focus:outline-none focus:bg-white focus:border-[#222222] transition-colors"
+```
+
+### Input (에러)
+```tsx
+// Background/Input/Error + Border/Critical
+className="w-full bg-[#FFF5F5] border border-[#F94239] rounded-[10px] px-4 py-3 text-sm
+           text-[#222222] placeholder:text-[#999999] focus:outline-none"
+// 에러 메시지: Content/Critical = text-[#F94239] text-xs mt-1
+```
+
+### 배지/태그 (Positive)
+```tsx
+// Support/PositiveAlt + Support/Positive
+className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E6EBB8] text-[#7C8C03]"
+```
+
+### 배지/태그 (Warning)
+```tsx
+// Support/WarningAlt + Support/Warning
+className="text-xs font-semibold px-3 py-1 rounded-full bg-[#FFF4D8] text-[#FFB803]"
+```
+
+### 배지/태그 (Critical)
+```tsx
+// Support/CriticalAlt + Support/Critical
+className="text-xs font-semibold px-3 py-1 rounded-full bg-[#FFF5F5] text-[#F94239]"
+```
+
+### 배지/태그 (Benefit)
+```tsx
+// Support/BenefitAlt + Support/Benefit
+className="text-xs font-semibold px-3 py-1 rounded-full bg-[#E7F7F3] text-[#01A484]"
+```
+
+### 배지/태그 (Neutral)
+```tsx
+// Support/NeutralAlt + Support/Neutral
+className="text-xs font-semibold px-3 py-1 rounded-full bg-[#F5F7FA] text-[#49627A]"
+```
+
+### 통계 카드 (숫자)
+```tsx
+// Background/Primary + Border/Primary
+className="bg-white rounded-[14px] p-4 text-center border border-[#E6E6E6] shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+// 숫자: text-[28px] font-extrabold tracking-tight text-[#7C8C03]
+// 라벨: text-[11px] text-[#8B8B8B] font-semibold mt-1  (Content/Secondary)
 ```
 
 ### 리스트 아이템
 ```tsx
-className="flex items-center gap-3 p-[13px_16px] rounded-[13px] bg-white border border-[#F0F0F2] cursor-pointer transition-all duration-150 hover:-translate-y-[1px] hover:border-[#E0E7FF] hover:shadow-[0_4px_12px_rgba(99,102,241,0.08)]"
-// 완료 상태: bg-[#F0FDF4] border-[#BBF7D0]
+// Background/Primary + Border/Primary → Border/Selected
+className="flex items-center gap-3 p-[13px_16px] rounded-[13px] bg-white border border-[#E6E6E6]
+           cursor-pointer transition-all duration-150
+           hover:-translate-y-[1px] hover:border-[#CEDA80] hover:shadow-[0_4px_12px_rgba(124,140,3,0.08)]"
+// 완료 상태: bg-[#F4F6E0] border-[#CEDA80]  (Support/PositiveAlt + Border/Selected)
 ```
 
 ### 체크박스
 ```tsx
-// 미완료
-className="w-5 h-5 rounded-[6px] border-2 border-[#D1D5DB] flex-shrink-0 transition-all duration-200"
-// 완료
-className="w-5 h-5 rounded-[6px] border-2 border-[#22c55e] bg-[#22c55e] flex items-center justify-center flex-shrink-0"
+// 미완료: Border/Primary
+className="w-5 h-5 rounded-[6px] border-2 border-[#E6E6E6] flex-shrink-0 transition-all duration-200"
+// 완료: Support/Positive
+className="w-5 h-5 rounded-[6px] border-2 border-[#7C8C03] bg-[#7C8C03] flex items-center justify-center flex-shrink-0"
+```
+
+### Divider
+```tsx
+// Border/Primary
+<div className="h-px w-full bg-[#E6E6E6]" />
+// Border/Secondary (강조)
+<div className="h-px w-full bg-[#DCDCDC]" />
+```
+
+### Snackbar / Toast
+```tsx
+// Background/InversePrimary + Content/InversePrimary
+className="bg-[#222222] text-white text-sm font-medium px-5 py-3 rounded-[12px]
+           shadow-[0_4px_16px_rgba(0,0,0,0.16)]"
+```
+
+### 오버레이 (Dialog 딤)
+```tsx
+// Background/Overlay/DarkPrimary
+className="fixed inset-0 bg-black/48 z-50"
+```
+
+### 진행바
+```tsx
+// 외부: Support/PositiveAlt 또는 white/20
+className="h-[7px] rounded-full bg-[#E6EBB8] overflow-hidden"
+// 내부: Support/Positive
+className="h-full rounded-full bg-[#7C8C03] transition-all duration-700"
+style={{ width: `${pct}%` }}
+```
+
+### 스켈레톤
+```tsx
+// Support/Skeleton/Base
+className="bg-[#F5F7FA] rounded-[14px] animate-pulse"
+// shimmer overlay는 별도 keyframe 사용
 ```
 
 ### 아이콘
@@ -184,13 +447,17 @@ import { Icon } from '@iconify/react'
 ### 이미지
 - Next.js `<Image>` 컴포넌트 항상 사용
 - 플레이스홀더: `https://picsum.photos/seed/{descriptive_name}/{width}/{height}`
-- Unsplash URL **절대 금지**
+- Unsplash URL 절대 금지
 
 ### 애니메이션
 ```css
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(1rem); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 ```
 - `transform`, `opacity`만 애니메이션 — `top`, `left`, `width`, `height` 금지
@@ -223,25 +490,25 @@ import { Icon } from '@iconify/react'
 
 ### 표준 페이지 구조
 ```
-[Sticky 헤더] h-14
+[Sticky 헤더] h-14  — Background/Primary 80% + Border/Primary
 [Hero 카드] rounded-[20px] 그라디언트
-[통계 카드 3열]
-[필터/카테고리]
+[통계 카드 3열]  — Background/Primary + Border/Primary
+[필터/카테고리 배지]
 [리스트 or 그리드]
-[푸터 메시지]
+[푸터 메시지]  — Content/Tertiary
 ```
 
 ### 통계 표시
 - 3열 그리드: 전체 / 완료 / 남은 항목
-- 숫자는 크게 (28px+), 라벨은 작게 (11px)
-- 각 숫자에 의미 있는 색상 (인디고, 에메랄드, 앰버)
+- 숫자 `text-[28px] font-extrabold`, 라벨 `text-[11px]`
+- 컬러: Positive(Green800) / Benefit(BenefitGreen800) / Warning(Yellow900)
 
 ### 카테고리 필터
 ```tsx
-className="grid gap-2"
-style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}
-// 선택된 카테고리: 카테고리 색상 배경 + 흰 텍스트 + shadow
-// 미선택: 흰 배경 + 카테고리 색상 테두리
+// 미선택: Button/Default + Button/DefaultOutline
+className="bg-white border border-[#E6E6E6] text-[#222222] text-sm font-semibold px-4 py-2 rounded-full"
+// 선택됨: Button/Green + Button/GreenOutline
+className="bg-[#F4F6E0] border border-[#CEDA80] text-[#7C8C03] text-sm font-semibold px-4 py-2 rounded-full"
 ```
 
 ---
@@ -277,12 +544,12 @@ import { createServerClient } from '@supabase/ssr'
 ### 폴더 구조
 ```
 app/
-  (auth)/        # 인증 관련 라우트 그룹
-  (dashboard)/   # 대시보드 라우트 그룹
-  api/           # API Routes
+  (auth)/
+  (dashboard)/
+  api/
 components/
-  ui/            # 기본 UI 컴포넌트
-  [feature]/     # 기능별 컴포넌트
+  ui/
+  [feature]/
 lib/
   supabase.ts
   utils.ts
