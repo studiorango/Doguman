@@ -1,0 +1,355 @@
+:root {
+    --indigo: #6366f1;
+    --indigo-dark: #4f46e5;
+    --purple: #8b5cf6;
+    --bg: #F8F8FA;
+    --white: #FFFFFF;
+    --gray-100: #F1F1F5;
+    --gray-200: #E4E4EF;
+    --gray-500: #8B8B9E;
+    --gray-700: #4B4B63;
+    --gray-900: #1A1A2E;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-pill: 100px;
+    --font: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  .page {
+    background: var(--bg);
+    color: var(--gray-900);
+    line-height: 1.6;
+    font-family: var(--font);
+    min-height: 100dvh;
+  }
+  
+  /* NAV */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(248, 248, 250, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0.9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .navLogo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+  
+  .navParent { font-size: 0.8rem; font-weight: 600; color: var(--indigo); }
+  .navSep { color: var(--gray-200); }
+  .navName { font-size: 0.95rem; font-weight: 700; color: var(--gray-900); letter-spacing: -0.02em; }
+  
+  .navCta {
+    background: var(--indigo);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: var(--font);
+    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .navCta:hover { background: var(--indigo-dark); }
+  
+  /* HERO */
+  .hero {
+    padding: 72px 2rem 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .heroBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-pill);
+    padding: 0.35rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--gray-700);
+  }
+  
+  .badgeDot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--indigo);
+    flex-shrink: 0;
+  }
+  
+  .heroH1 {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.2;
+    color: var(--gray-900);
+  }
+  
+  .heroEm {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--indigo), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .heroSub {
+    font-size: 1rem;
+    color: var(--gray-500);
+    max-width: 420px;
+    line-height: 1.75;
+  }
+  
+  .videoCard {
+    width: 100%;
+    max-width: 800px;
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    aspect-ratio: 16/9;
+  }
+  
+  .videoCard iframe {
+    width: 100%; height: 100%;
+    border: none; display: block;
+  }
+  
+  /* SECTIONS */
+  .section { padding: 72px 2rem; }
+  .sectionInner { max-width: 960px; margin: 0 auto; }
+  
+  .sectionHeader {
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+  
+  .sectionTag {
+    display: inline-block;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--indigo);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--radius-pill);
+    margin-bottom: 0.75rem;
+  }
+  
+  .sectionTitle {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+  }
+  
+  .sectionDesc { font-size: 0.95rem; color: var(--gray-500); }
+  
+  /* PRICING */
+  .pricingWrap { display: flex; justify-content: center; }
+  
+  .priceCard {
+    background: var(--white);
+    border: 1.5px solid var(--indigo);
+    border-radius: var(--radius);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+    position: relative;
+  }
+  
+  .badgeBest {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--indigo);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-family: var(--font);
+    padding: 0.25rem 0.9rem;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+  }
+  
+  .priceName {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-500);
+    margin-bottom: 0.75rem;
+  }
+  
+  .priceAmount {
+    font-size: 3.2rem;
+    font-weight: 800;
+    letter-spacing: 0em;
+    color: var(--gray-900);
+    line-height: 1;
+  }
+  
+  .priceAmount sub {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    vertical-align: baseline;
+  }
+  
+  .priceSizeNote {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-top: 0.5rem;
+  }
+  
+  .priceDivider {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 1.75rem 0;
+  }
+  
+  .priceFeatures {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    text-align: left;
+  }
+  
+  .priceFeature {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    color: var(--gray-700);
+  }
+  
+  .featCheck {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .priceBtn {
+    display: block;
+    width: 100%;
+    margin-top: 1.75rem;
+    padding: 0.9rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 700;
+    font-family: var(--font);
+    text-align: center;
+    text-decoration: none;
+    background: var(--indigo);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .priceBtn:hover { background: var(--indigo-dark); }
+  
+  .pricingNote {
+    text-align: center;
+    margin-top: 1.25rem;
+    font-size: 0.8rem;
+    color: var(--gray-500);
+  }
+  
+  /* PROCESS */
+  .processSection {
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+  }
+  
+  .processGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+  }
+  
+  .step { text-align: center; }
+  
+  .stepIndex {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--indigo);
+    font-size: 1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  
+  .stepTitle { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .stepDesc { font-size: 0.85rem; color: var(--gray-500); line-height: 1.7; }
+  
+  /* CTA */
+  .ctaSection { padding: 72px 2rem; text-align: center; }
+  
+  .ctaCard {
+    max-width: 520px;
+    margin: 0 auto;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+  }
+  
+  .ctaCard h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.6rem; }
+  .ctaCard p { font-size: 0.9rem; color: var(--gray-500); margin-bottom: 2rem; line-height: 1.75; }
+  
+  .ctaBig {
+    display: inline-block;
+    background: var(--indigo);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: var(--font);
+    padding: 0.9rem 2.5rem;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .ctaBig:hover { background: var(--indigo-dark); transform: translateY(-2px); }
+  
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid var(--gray-200);
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    line-height: 1.85;
+  }
+  .footer strong { color: var(--gray-700); }
+  .footerLink { color: var(--indigo); text-decoration: none; font-weight: 600; }
+  
+  @media (max-width: 640px) {
+    .nav { padding: 0.9rem 1.25rem; }
+    .hero { padding: 48px 1.25rem 52px; }
+    .section { padding: 52px 1.25rem; }
+    .ctaSection { padding: 52px 1.25rem; }
+  }
