@@ -240,8 +240,9 @@ export default function TimeChop() {
 
   // ── 유저 확인 ──
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
+    supabase.auth.getUser().then(({ data }: { data: any }) => {
+        const user = data?.user;
+        if (user) setUserId(user.id);
     });
   }, []);
 
@@ -255,7 +256,7 @@ export default function TimeChop() {
       .select("presets")
       .eq("user_id", userId)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (data?.presets?.length) setPresets(data.presets);
       });
 
@@ -266,7 +267,7 @@ export default function TimeChop() {
       .eq("user_id", userId)
       .eq("date", today())
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: any }) => {
         if (!data) return;
         if (data.tasks) setMemoTasks(data.tasks);
         if (data.slots?.startTime && data.slots?.endTime) {
