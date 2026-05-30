@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 export const maxDuration = 60; // Vercel 최대 60초
 
 const BLOG_ID = "lifeisntcool";
-const CATEGORY_NO = "3";
+const CATEGORY_NOS = ["3", "26", "30"]; // 셀룰로이드 드림, 별점과 20자평 종합, 집계는 나의 힘
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,8 +51,8 @@ function parseMoviesFromHtml(html: string, postNo: string, postTitle: string, da
   return movies;
 }
 
-async function fetchPostList(page: number) {
-  const url = `https://blog.naver.com/PostTitleListAsync.naver?blogId=${BLOG_ID}&currentPage=${page}&categoryNo=${CATEGORY_NO}`;
+async function fetchPostListFromCategory(page: number, categoryNo: string) {
+  const url = `https://blog.naver.com/PostTitleListAsync.naver?blogId=${BLOG_ID}&currentPage=${page}&categoryNo=${categoryNo}`;
   const res = await fetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
@@ -72,6 +72,16 @@ async function fetchPostList(page: number) {
       date: p.addDate || "",
     }));
   } catch { return []; }
+}
+
+async function fetchPostList(page: number) {
+  const results = await Promise.all(CATEGORY_NOS.map((cat) => fetchPostListFromCategory(page, cat)));
+  const seen = new Set<string>();
+  return results.flat().filter((p) => {
+    if (seen.has(p.logNo)) return false;
+    seen.add(p.logNo);
+    return true;
+  });
 }
 
 async function fetchPostHtml(logNo: string): Promise<string> {
