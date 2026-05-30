@@ -64,6 +64,8 @@ const CATEGORIES: Category[] = [
     services: [
       { name: "버킷리스트 도구", href: "/bucket", description: "인생 목표를 버킷리스트로 만들고 달성률을 추적합니다." },
       { name: "10분 퀘스트", href: "/timechop", description: "하루를 10분으로 잘게 썰어 퀘스트로 꽉 채웁니다." },
+      { name: "랜덤 국내 여행", href: "/random-travel", description: "랜덤 좌표로 국내 어딘가로 떠나보세요." },
+      { name: "서울 랜덤 탐험", href: "/random-travel/seoul", description: "서울 80개 동네 중 랜덤으로 오늘의 동네를 뽑아드려요." },
       { name: "오버롤 측정기", href: "/hub", description: "나의 잠재력 수치를 간단히 측정합니다." },
     ],
   },
