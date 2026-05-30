@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         if (movies.length > 0) {
           const { error } = await supabase
             .from("dongiin_movies")
-            .upsert(movies, { onConflict: "title,post_no", ignoreDuplicates: true });
+            .upsert(movies, { onConflict: "title", ignoreDuplicates: true });
           if (!error) saved += movies.length;
           else skipped += movies.length;
         }
