@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const maxDuration = 60; // Vercel 최대 60초
+
 const BLOG_ID = "lifeisntcool";
 const CATEGORY_NO = "3";
 

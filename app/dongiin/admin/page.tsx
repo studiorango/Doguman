@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import React from "react";
 
-const BATCH_SIZE = 20; // 한 번에 20페이지씩
+const BATCH_SIZE = 5; // 한 번에 5페이지씩 (타임아웃 방지)
 
 export default function DongiinAdminPage() {
   const [status, setStatus] = useState<"idle" | "running" | "done">("idle");
