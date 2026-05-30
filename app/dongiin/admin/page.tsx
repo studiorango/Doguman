@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import React from "react";
 
 const BATCH_SIZE = 20; // 한 번에 20페이지씩
 
@@ -21,10 +22,10 @@ export default function DongiinAdminPage() {
     setLog((prev) => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
   }
 
-  async function runBatch(startPage: number) {
-    setStatus("running");
-    addLog(`페이지 ${startPage}~${startPage + BATCH_SIZE - 1} 스크래핑 시작...`);
+  const runningRef = React.useRef(false);
 
+  async function runBatch(startPage: number): Promise<{ finished: boolean; nextPage: number }> {
+    addLog(`페이지 ${startPage}~${startPage + BATCH_SIZE - 1} 스크래핑 중...`);
     try {
       const res = await fetch("/api/dongiin-save", {
         method: "POST",
@@ -32,38 +33,64 @@ export default function DongiinAdminPage() {
         body: JSON.stringify({ startPage, endPage: startPage + BATCH_SIZE - 1 }),
       });
       const data = await res.json();
-
       if (data.ok) {
         setTotalStored(data.totalStored);
-        addLog(`✅ 완료: ${data.totalMovies}편 파싱, ${data.saved}편 저장 (누적 ${data.totalStored}편)`);
-
-        if (data.totalMovies === 0) {
-          addLog("🎉 모든 포스팅 완료!");
-          setIsFinished(true);
-          setStatus("done");
-        } else {
-          setCurrentPage(startPage + BATCH_SIZE);
-          setStatus("idle");
-        }
+        addLog(`✅ ${data.totalMovies}편 파싱 · ${data.saved}편 저장 · 누적 ${data.totalStored?.toLocaleString()}편`);
+        if (data.totalMovies === 0) return { finished: true, nextPage: startPage };
+        return { finished: false, nextPage: startPage + BATCH_SIZE };
       } else {
         addLog(`❌ 오류: ${data.error}`);
-        setStatus("idle");
+        return { finished: true, nextPage: startPage };
       }
     } catch (e) {
       addLog(`❌ 네트워크 오류: ${e}`);
-      setStatus("idle");
+      return { finished: true, nextPage: startPage };
     }
   }
 
   async function runAll() {
-    setCurrentPage(1);
+    runningRef.current = true;
+    setStatus("running");
     setIsFinished(false);
     setLog([]);
-    await runBatch(1);
+    setCurrentPage(1);
+    let page = 1;
+    while (runningRef.current) {
+      const { finished, nextPage } = await runBatch(page);
+      setCurrentPage(nextPage);
+      if (finished) {
+        addLog("🎉 전체 수집 완료!");
+        setIsFinished(true);
+        setStatus("done");
+        break;
+      }
+      page = nextPage;
+    }
+    runningRef.current = false;
   }
 
-  async function continueNext() {
-    await runBatch(currentPage);
+  async function continueAll() {
+    runningRef.current = true;
+    setStatus("running");
+    let page = currentPage;
+    while (runningRef.current) {
+      const { finished, nextPage } = await runBatch(page);
+      setCurrentPage(nextPage);
+      if (finished) {
+        addLog("🎉 전체 수집 완료!");
+        setIsFinished(true);
+        setStatus("done");
+        break;
+      }
+      page = nextPage;
+    }
+    runningRef.current = false;
+  }
+
+  function stopAll() {
+    runningRef.current = false;
+    setStatus("idle");
+    addLog("⏹ 중단됨");
   }
 
   async function updateNew() {
@@ -129,7 +156,7 @@ export default function DongiinAdminPage() {
           <div className="bg-white rounded-[14px] border border-[#E6E6E6] p-4 flex flex-col gap-3">
             <p className="text-xs font-semibold text-[#8B8B8B]">전체 초기 수집 (1,616개 포스팅)</p>
             <p className="text-xs text-[#BBBBBB] break-keep">
-              20페이지씩 나눠서 실행해요. 한 번 실행 후 "다음 배치 계속" 반복하면 전체 수집 완료.
+              한 번 누르면 끝날 때까지 자동으로 전체 수집해요.
               <br />현재 진행: <strong className="text-[#222222]">{currentPage - 1}페이지까지 완료</strong>
             </p>
             <div className="flex gap-2">
@@ -138,15 +165,18 @@ export default function DongiinAdminPage() {
                 disabled={status === "running"}
                 className="flex-1 py-3 rounded-[12px] text-sm font-bold border border-[#E6E6E6] bg-[#F5F5F5] text-[#222222] disabled:opacity-50 transition-all"
               >
-                처음부터 시작
+                처음부터 자동 수집
               </button>
               <button
-                onClick={continueNext}
-                disabled={status === "running" || isFinished}
+                onClick={status === "running" ? stopAll : continueAll}
+                disabled={isFinished && status !== "running"}
                 className="flex-1 py-3 rounded-[12px] text-sm font-bold transition-all disabled:opacity-50"
-                style={{ background: currentPage > 1 ? "#7C8C03" : "#F5F5F5", color: currentPage > 1 ? "#fff" : "#BBBBBB" }}
+                style={{
+                  background: status === "running" ? "#F94239" : "#7C8C03",
+                  color: "#fff",
+                }}
               >
-                다음 배치 계속 →
+                {status === "running" ? "⏹ 중단" : "▶ 이어서 수집"}
               </button>
             </div>
           </div>
