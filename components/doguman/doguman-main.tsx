@@ -54,6 +54,7 @@ const CATEGORIES: Category[] = [
     bg: "#E8EDF4",
     services: [
       { name: "소셜 포스팅 도우미", href: "/socialas", description: "원문을 플랫폼별로 짧고 임팩트 있게 다듬어 드립니다." },
+      { name: "이동진 추적기", href: "/dongiin", description: "이동진 평론가의 영화 별점을 별점·장르·연도·국가로 필터링해서 찾아보세요." },
     ],
   },
   {
