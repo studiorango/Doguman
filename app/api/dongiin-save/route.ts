@@ -60,8 +60,10 @@ async function fetchPostList(page: number) {
     },
   });
   const raw = await res.text();
-  const cleaned = raw.replace(/\\'/g, "'");
   try {
+    const cleaned = raw
+      .replace(/\\'/g, "'")
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
     const json = JSON.parse(cleaned);
     if (json.resultCode !== "S") return [];
     return (json.postList || []).map((p: { logNo: string; title: string; addDate: string }) => ({
