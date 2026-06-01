@@ -18,19 +18,21 @@ async function getRecipeText(videoId: string): Promise<string> {
   const videoData = await videoRes.json();
   const description: string = videoData.items?.[0]?.snippet?.description ?? "";
 
-  // 댓글에서 레시피 찾기
+  // 댓글에서 레시피 찾기 (고정 댓글 포함 상위 10개)
   try {
     const commentRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=5&key=${apiKey}`
+      `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=10&key=${apiKey}`
     );
     const commentData = await commentRes.json();
     const comments: string[] = (commentData.items || []).map(
       (item: { snippet: { topLevelComment: { snippet: { textOriginal: string } } } }) =>
         item.snippet.topLevelComment.snippet.textOriginal
     );
-    const recipeComment = comments.find(
-      (c) => c.includes("재료") || c.includes("g") || c.length > 200
-    ) ?? "";
+    // 레시피가 있을 것 같은 댓글 우선, 없으면 가장 긴 댓글
+    const recipeComment =
+      comments.find((c) => c.includes("재료") || c.includes("레시피")) ??
+      comments.find((c) => c.length > 300) ??
+      "";
     if (recipeComment) return recipeComment;
   } catch { /* 댓글 없으면 설명란 사용 */ }
 
@@ -78,13 +80,13 @@ export async function POST(req: NextRequest) {
   const { videoId, title, thumbnail, channelName } = await req.json();
   if (!videoId) return NextResponse.json({ error: "videoId 필요" }, { status: 400 });
 
-  // 이미 있으면 기존 반환
+  // 이미 있고 recipe가 있으면 기존 반환, recipe가 null이면 재분석
   const { data: existing } = await supabase
     .from("pending_recipes")
     .select("*")
     .eq("video_id", videoId)
     .single();
-  if (existing) return NextResponse.json({ ok: true, item: existing, alreadyExists: true });
+  if (existing?.recipe) return NextResponse.json({ ok: true, item: existing, alreadyExists: true });
 
   const recipeText = await getRecipeText(videoId);
   const recipe = recipeText ? await parseRecipe(title, channelName, recipeText) : null;
