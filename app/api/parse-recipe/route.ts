@@ -40,8 +40,24 @@ export async function POST(req: NextRequest) {
     const description = snippet.description ?? "";
     const channelTitle = snippet.channelTitle ?? "";
 
-    if (!description.trim()) {
-      return NextResponse.json({ thumbnail, videoId, title, source: channelTitle, description: null });
+    // 설명란에 재료 정보가 없으면 댓글(고정 댓글 포함)에서 찾기
+    let recipeText = description;
+    if (!description.trim() || description.length < 100) {
+      const commentRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=5&key=${ytApiKey}`
+      );
+      const commentData = await commentRes.json();
+      const comments: string[] = (commentData.items || []).map(
+        (item: { snippet: { topLevelComment: { snippet: { textOriginal: string } } } }) =>
+          item.snippet.topLevelComment.snippet.textOriginal
+      );
+      // 재료가 포함될 가능성이 높은 댓글 우선
+      const recipeComment = comments.find((c) => c.includes("재료") || c.includes("g") || c.length > 200) ?? comments[0] ?? "";
+      recipeText = recipeComment || description;
+    }
+
+    if (!recipeText.trim()) {
+      return NextResponse.json({ thumbnail, videoId, title, source: channelTitle, recipe: null });
     }
 
     // Claude API로 레시피 파싱
@@ -63,8 +79,8 @@ export async function POST(req: NextRequest) {
 
 영상 제목: ${title}
 채널명: ${channelTitle}
-설명란:
-${description.slice(0, 3000)}
+내용:
+${recipeText.slice(0, 3000)}
 
 반드시 아래 JSON 형식으로만 응답하세요. 레시피 정보가 없으면 null을 반환하세요:
 {

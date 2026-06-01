@@ -14,7 +14,7 @@ const supabase = createClient(
 type FridgeItem = { name: string };
 type Step = { label: string; dur: number; color: string };
 type Recipe = { id: number; name: string; source: string; time: number; ingredients: string[]; ingredientTexts?: string[]; ingredientAlts?: Record<string, string[]>; steps: Step[]; cuisine: string; thumbnail?: string; youtubeUrl?: string; dbId?: string };
-type NavPage = "fridge" | "recipe" | "timetable" | "youtuber";
+type NavPage = "fridge" | "recipe" | "timetable" | "youtuber" | "pending";
 type SortOrder = "default" | "pct_desc" | "pct_asc" | "time_asc";
 type IngRow = { text: string; alts?: string[] };
 type StepRow = { label: string; dur: string };
@@ -620,12 +620,13 @@ export default function RecipegeratorPage() {
 ───────────────────────────────────────────────────────────── */}
 
       {/* 네비 카드 */}
-      <div className="grid grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-5 gap-3 mb-8">
         {([
           { key: 'fridge',    label: '냉장고',      desc: '재고 관리' },
           { key: 'recipe',    label: '레시피',      desc: '내 레시피 모음' },
           { key: 'timetable', label: '타임테이블',  desc: '동시 완성 계획' },
           { key: 'youtuber',  label: '유튜버 검색', desc: '채널 & 영상 탐색' },
+          { key: 'pending',   label: '대기중',      desc: '자동 감지 레시피' },
         ] as const).map(n => (
           <button
             key={n.key}
@@ -1602,7 +1603,153 @@ export default function RecipegeratorPage() {
             )}
           </div>
         )}
+
+        {page === 'pending' && (
+          <PendingRecipesTab
+            cardCls={cardCls}
+            btnCls={btnCls}
+            btnSmCls={btnSmCls}
+            onApprove={(recipe, videoUrl) => {
+              const r = recipe as { name?: string; source?: string; time?: number; cuisine?: string; ingredients?: string[]; steps?: {label:string;dur:number}[] };
+              setDrafts([{ ...newDraft(), name: r.name ?? '', source: r.source ?? '', time: String(r.time ?? ''), cuisine: r.cuisine ?? '기타', ingRows: (r.ingredients ?? []).map((i: string) => ({ text: i })), stepRows: (r.steps ?? []).map((s: {label:string;dur:number}) => ({ label: s.label, dur: String(s.dur) })), rawIngText: (r.ingredients ?? []).join('\n'), ingError: '', thumbnail: '', youtubeUrl: videoUrl, ytUrl: videoUrl, ytLoading: false, ytError: '', isPublic: false }]);
+              setShowAddRecipe(true);
+              setPage('recipe');
+            }}
+          />
+        )}
       </main>
+    </div>
+  );
+}
+
+function PendingRecipesTab({ cardCls, btnCls, btnSmCls, onApprove }: {
+  cardCls: string;
+  btnCls: string;
+  btnSmCls: string;
+  onApprove: (recipe: Record<string, unknown>, videoUrl: string) => void;
+}) {
+  const [items, setItems] = useState<Array<{id: string; video_id: string; video_url: string; title: string; thumbnail: string; channel_name: string; recipe: Record<string,unknown>|null; status: string; created_at: string}>>([]);
+  const [loading, setLoading] = useState(true);
+  const [watchedChannels, setWatchedChannels] = useState<Array<{id:string;channel_id:string;channel_name:string}>>([]);
+  const [addChId, setAddChId] = useState('');
+  const [addChName, setAddChName] = useState('');
+  const [checking, setChecking] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    const [pr, wc] = await Promise.all([
+      fetch('/api/pending-recipes').then(r => r.json()),
+      fetch('/api/watch-channel').then(r => r.json()),
+    ]);
+    if (pr.ok) setItems(pr.recipes ?? []);
+    if (wc.ok) setWatchedChannels(wc.channels ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function dismiss(id: string) {
+    await fetch('/api/pending-recipes', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id, status: 'rejected' }) });
+    setItems(prev => prev.filter(i => i.id !== id));
+  }
+
+  async function addChannel() {
+    if (!addChId.trim() || !addChName.trim()) return;
+    await fetch('/api/watch-channel', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ channelId: addChId.trim(), channelName: addChName.trim() }) });
+    setAddChId(''); setAddChName('');
+    load();
+  }
+
+  async function removeChannel(channelId: string) {
+    await fetch('/api/watch-channel', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ channelId }) });
+    load();
+  }
+
+  async function checkNow() {
+    setChecking(true);
+    await fetch('/api/check-new-videos');
+    await load();
+    setChecking(false);
+  }
+
+  return (
+    <div>
+      <h1 className="text-[16px] font-extrabold text-[#1A1A1A] mb-4">자동 감지 레시피</h1>
+
+      {/* 감시 채널 관리 */}
+      <div className={cardCls + ' mb-4'}>
+        <p className="text-[11px] font-bold text-[#B0A99F] tracking-wider mb-3">감시 중인 채널</p>
+        {watchedChannels.length === 0 && <p className="text-[12px] text-[#B0A99F] mb-3">아직 등록된 채널이 없어요.</p>}
+        <div className="flex flex-col gap-2 mb-3">
+          {watchedChannels.map(ch => (
+            <div key={ch.id} className="flex items-center justify-between bg-[#F8F7F5] rounded-[10px] px-3 py-2">
+              <div>
+                <p className="text-[13px] font-semibold text-[#1A1A1A]">{ch.channel_name}</p>
+                <p className="text-[11px] text-[#B0A99F]">{ch.channel_id}</p>
+              </div>
+              <button onClick={() => removeChannel(ch.channel_id)} className="text-[11px] text-[#F94239] font-semibold px-2 py-1 rounded-[6px] hover:bg-[#FFF5F5]">제거</button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 mb-2">
+          <input value={addChName} onChange={e => setAddChName(e.target.value)} placeholder="채널명 (예: 은수저)" className="flex-1 text-[12px] border border-[#EAE7E2] rounded-[8px] px-3 py-2 focus:outline-none focus:border-[#4A7362]" />
+          <input value={addChId} onChange={e => setAddChId(e.target.value)} placeholder="채널 ID (UCxx...)" className="flex-1 text-[12px] border border-[#EAE7E2] rounded-[8px] px-3 py-2 focus:outline-none focus:border-[#4A7362]" />
+          <button onClick={addChannel} disabled={!addChId.trim() || !addChName.trim()} className={`${btnSmCls} disabled:opacity-40 flex-shrink-0`}>등록</button>
+        </div>
+        <p className="text-[10px] text-[#B0A99F]">채널 ID는 유튜브 채널 URL의 UC로 시작하는 부분이에요. 매일 오전 9시 자동 확인.</p>
+        <button onClick={checkNow} disabled={checking || watchedChannels.length === 0} className={`${btnSmCls} mt-3 w-full disabled:opacity-40`}>
+          {checking ? '확인 중...' : '지금 바로 확인'}
+        </button>
+      </div>
+
+      {/* 대기 중인 레시피 */}
+      <div className={cardCls}>
+        <p className="text-[11px] font-bold text-[#B0A99F] tracking-wider mb-3">
+          대기 중인 레시피 {items.length > 0 && <span className="text-[#4A7362]">({items.length}개)</span>}
+        </p>
+        {loading && <p className="text-[12px] text-[#B0A99F]">불러오는 중...</p>}
+        {!loading && items.length === 0 && <p className="text-[12px] text-[#B0A99F]">대기 중인 레시피가 없어요.</p>}
+        <div className="flex flex-col gap-4">
+          {items.map(item => (
+            <div key={item.id} className="border border-[#EAE7E2] rounded-[12px] overflow-hidden">
+              <div className="flex gap-3 p-3 bg-[#F8F7F5]">
+                {item.thumbnail && <img src={item.thumbnail} alt="" className="w-[80px] h-[45px] rounded-[6px] object-cover flex-shrink-0 bg-[#E8E8E8]" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-bold text-[#1A1A1A] leading-tight line-clamp-2 break-keep">{item.title}</p>
+                  <p className="text-[11px] text-[#B0A99F] mt-0.5">{item.channel_name} · {item.created_at.slice(0,10)}</p>
+                  <a href={item.video_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#1B4F8A] hover:underline">영상 보기 ↗</a>
+                </div>
+              </div>
+              {item.recipe ? (
+                <div className="p-3">
+                  <p className="text-[12px] font-semibold text-[#1A1A1A] mb-1">{String(item.recipe.name ?? '')}</p>
+                  <p className="text-[11px] text-[#888] mb-2">{String(item.recipe.cuisine ?? '')} · {String(item.recipe.time ?? '')}분</p>
+                  <p className="text-[11px] font-semibold text-[#B0A99F] mb-1">재료</p>
+                  <p className="text-[11px] text-[#555] mb-3 leading-relaxed">
+                    {(item.recipe.ingredients as string[] ?? []).join(' · ')}
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={() => onApprove(item.recipe!, item.video_url)} className={`${btnCls} flex-1`}>
+                      레시피 등록 →
+                    </button>
+                    <button onClick={() => dismiss(item.id)} className={`${btnSmCls} flex-shrink-0`}>건너뛰기</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3">
+                  <p className="text-[12px] text-[#B0A99F] mb-2">레시피 정보를 자동으로 파싱하지 못했어요.</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => onApprove({name: item.title, source: item.channel_name, time: 30, cuisine: '기타', ingredients: [], steps: []}, item.video_url)} className={`${btnSmCls} flex-1`}>
+                      직접 입력하기
+                    </button>
+                    <button onClick={() => dismiss(item.id)} className={`${btnSmCls} flex-shrink-0`}>건너뛰기</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
