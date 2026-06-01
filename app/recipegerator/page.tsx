@@ -1639,7 +1639,7 @@ function PendingRecipesTab({ cardCls, btnCls, btnSmCls, onApprove }: {
   const [addChName, setAddChName] = useState('');
 
   // 채널별 영상 목록
-  const [channelVideos, setChannelVideos] = useState<Record<string, { videos: ChannelVideo[]; nextPageToken: string|null; prevPageToken: string|null; loading: boolean }>>({});
+  const [channelVideos, setChannelVideos] = useState<Record<string, { videos: ChannelVideo[]; nextPageToken: string|null; prevPageToken: string|null; loading: boolean; error?: string }>>({});
   // 영상별 분석 상태
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set());
@@ -1660,14 +1660,22 @@ function PendingRecipesTab({ cardCls, btnCls, btnSmCls, onApprove }: {
   }
 
   async function loadVideos(channelId: string, channelName: string, pageToken?: string) {
-    setChannelVideos(prev => ({ ...prev, [channelId]: { ...(prev[channelId] ?? { videos: [], nextPageToken: null, prevPageToken: null }), loading: true } }));
-    const body: Record<string, string> = { channelId };
-    if (pageToken) body.pageToken = pageToken;
-    const data = await fetch('/api/search-channel', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json());
-    setChannelVideos(prev => ({
-      ...prev,
-      [channelId]: { videos: data.videos ?? [], nextPageToken: data.nextPageToken ?? null, prevPageToken: data.prevPageToken ?? null, loading: false },
-    }));
+    setChannelVideos(prev => ({ ...prev, [channelId]: { ...(prev[channelId] ?? { videos: [], nextPageToken: null, prevPageToken: null }), loading: true, error: undefined } }));
+    try {
+      const body: Record<string, string> = { channelId };
+      if (pageToken) body.pageToken = pageToken;
+      const data = await fetch('/api/search-channel', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json());
+      if (data.error) throw new Error(data.error);
+      setChannelVideos(prev => ({
+        ...prev,
+        [channelId]: { videos: data.videos ?? [], nextPageToken: data.nextPageToken ?? null, prevPageToken: data.prevPageToken ?? null, loading: false },
+      }));
+    } catch (e) {
+      setChannelVideos(prev => ({
+        ...prev,
+        [channelId]: { videos: [], nextPageToken: null, prevPageToken: null, loading: false, error: String(e) },
+      }));
+    }
     void channelName;
   }
 
@@ -1749,8 +1757,16 @@ function PendingRecipesTab({ cardCls, btnCls, btnSmCls, onApprove }: {
             <p className="text-[11px] font-bold text-[#B0A99F] tracking-wider mb-3">{ch.channel_name} 영상 목록</p>
             {!cv || cv.loading ? (
               <p className="text-[12px] text-[#B0A99F]">불러오는 중...</p>
+            ) : cv.error ? (
+              <div>
+                <p className="text-[12px] text-[#F94239] mb-2">불러오기 실패: {cv.error}</p>
+                <button onClick={() => loadVideos(ch.channel_id, ch.channel_name)} className={btnSmCls}>다시 시도</button>
+              </div>
             ) : cv.videos.length === 0 ? (
-              <p className="text-[12px] text-[#B0A99F]">영상이 없어요.</p>
+              <div>
+                <p className="text-[12px] text-[#B0A99F] mb-2">영상이 없어요.</p>
+                <button onClick={() => loadVideos(ch.channel_id, ch.channel_name)} className={btnSmCls}>다시 시도</button>
+              </div>
             ) : (
               <>
                 <div className="flex flex-col gap-2">
