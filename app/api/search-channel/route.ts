@@ -52,9 +52,10 @@ export async function POST(req: NextRequest) {
     );
     const videosData = await videosRes.json();
 
+    const decodeHtml = (s: string) => s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
     const videos = (videosData.items ?? []).map((item: any) => ({
       id: item.id.videoId,
-      title: item.snippet.title,
+      title: decodeHtml(item.snippet.title),
       thumbnail: item.snippet.thumbnails?.medium?.url ?? "",
       publishedAt: item.snippet.publishedAt?.slice(0, 7).replace("-", ".") ?? "",
     }));
