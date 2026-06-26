@@ -315,7 +315,7 @@ export default function WorkoutPage() {
 // ─── 운동 기록 히트맵 (GitHub 잔디 스타일, 모노톤) ──────────────────────────────
 
 const HEAT_WEEKS = 20
-const HEAT_LEVELS = ['#ECECEC', '#D2D2D2', '#9E9E9E', '#5C5C5C', '#222222'] // 적음 → 많음
+const HEAT_LEVELS = ['#EBEBEB', '#8E8E8E', '#666666', '#3D3D3D', '#1A1A1A'] // 적음 → 많음 (운동한 날이 잘 보이도록 진하게)
 
 function heatLevel(count: number) {
   if (!count) return 0
