@@ -62,6 +62,7 @@ function parseScheme(scheme: string) {
 // ─── 기록 상태 타입 ──────────────────────────────────────────────────────────────
 
 type SetRecord = { weight: number | null; reps: number | null; done: boolean }
+const EMPTY_SET: SetRecord = { weight: null, reps: null, done: false }
 const recKey = (day: string, ex: string, i: number) => `${day}|${ex}|${i}`
 
 function todayStr() {
@@ -116,7 +117,7 @@ export default function WorkoutPage() {
   const saveSet = useCallback(async (day: string, ex: string, i: number, patch: Partial<SetRecord>) => {
     const key = recKey(day, ex, i)
     // ref에서 최신 값을 동기적으로 병합 — 무게·횟수·완료 연속 저장 시 서로 덮어쓰지 않도록
-    const merged: SetRecord = { weight: null, reps: null, done: false, ...recordsRef.current[key], ...patch }
+    const merged: SetRecord = { ...EMPTY_SET, ...recordsRef.current[key], ...patch }
     recordsRef.current = { ...recordsRef.current, [key]: merged }
     setRecords(recordsRef.current)
     try {
