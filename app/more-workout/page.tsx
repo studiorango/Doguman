@@ -65,9 +65,16 @@ type SetRecord = { weight: number | null; reps: number | null; done: boolean }
 const EMPTY_SET: SetRecord = { weight: null, reps: null, done: false }
 const recKey = (day: string, ex: string, i: number) => `${day}|${ex}|${i}`
 
-function todayStr() {
-  const d = new Date()
+function fmtDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function todayStr() {
+  return fmtDate(new Date())
+}
+function addDays(d: Date, n: number) {
+  const r = new Date(d)
+  r.setDate(r.getDate() + n)
+  return r
 }
 
 // ─── 페이지 ────────────────────────────────────────────────────────────────────
@@ -77,8 +84,26 @@ export default function WorkoutPage() {
   const [activeDay, setActiveDay] = useState<'d1' | 'd2' | 'd3'>('d1')
   const [records, setRecords] = useState<Record<string, SetRecord>>({})
   const recordsRef = useRef<Record<string, SetRecord>>({}) // 동기 병합용 최신 스냅샷
+  const [activity, setActivity] = useState<Record<string, number>>({}) // 날짜 → 완료 세트 수 (히트맵)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
+
+  // 전체 운동 활동량 로드 (히트맵용)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('workout_sets')
+        .select('log_date')
+        .eq('done', true)
+      if (cancelled || error) return
+      const counts: Record<string, number> = {}
+      for (const r of data ?? []) counts[r.log_date] = (counts[r.log_date] ?? 0) + 1
+      setActivity(counts)
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // 날짜 바뀌면 해당 날짜 기록 전체 로드
   useEffect(() => {
@@ -120,6 +145,11 @@ export default function WorkoutPage() {
     const merged: SetRecord = { ...EMPTY_SET, ...recordsRef.current[key], ...patch }
     recordsRef.current = { ...recordsRef.current, [key]: merged }
     setRecords(recordsRef.current)
+    // 완료 상태가 바뀌면 히트맵의 해당 날짜 카운트도 즉시 갱신
+    if (patch.done !== undefined) {
+      const count = Object.values(recordsRef.current).filter(r => r.done).length
+      setActivity(prev => ({ ...prev, [logDate]: count }))
+    }
     try {
       const supabase = createClient()
       const { error } = await supabase.from('workout_sets').upsert(
@@ -162,6 +192,9 @@ export default function WorkoutPage() {
       </header>
 
       <main className="max-w-[720px] mx-auto px-5 pb-24 pt-5">
+        {/* 운동 기록 히트맵 */}
+        <Heatmap activity={activity} selected={logDate} onSelect={setLogDate} />
+
         {/* 분할 선택 — 정사각형 카드 3장 */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {DAYS.map(day => {
@@ -276,6 +309,109 @@ export default function WorkoutPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// ─── 운동 기록 히트맵 (GitHub 잔디 스타일, 모노톤) ──────────────────────────────
+
+const HEAT_WEEKS = 20
+const HEAT_LEVELS = ['#ECECEC', '#D2D2D2', '#9E9E9E', '#5C5C5C', '#222222'] // 적음 → 많음
+
+function heatLevel(count: number) {
+  if (!count) return 0
+  if (count <= 5) return 1
+  if (count <= 10) return 2
+  if (count <= 15) return 3
+  return 4
+}
+
+function Heatmap({ activity, selected, onSelect }: {
+  activity: Record<string, number>
+  selected: string
+  onSelect: (date: string) => void
+}) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayKey = fmtDate(today)
+  // 현재 주의 일요일에서 (HEAT_WEEKS-1)주 전 일요일이 그리드 시작점
+  const firstSunday = addDays(addDays(today, -today.getDay()), -(HEAT_WEEKS - 1) * 7)
+
+  // 주(컬럼) × 요일(행) 매트릭스
+  const weeks: { date: Date; key: string }[][] = []
+  for (let w = 0; w < HEAT_WEEKS; w++) {
+    const days: { date: Date; key: string }[] = []
+    for (let d = 0; d < 7; d++) {
+      const date = addDays(firstSunday, w * 7 + d)
+      days.push({ date, key: fmtDate(date) })
+    }
+    weeks.push(days)
+  }
+
+  // 월 라벨: 주의 첫날 기준 월이 바뀌면 표기
+  const monthLabels = weeks.map((week, i) => {
+    const m = week[0].date.getMonth()
+    const prevM = i > 0 ? weeks[i - 1][0].date.getMonth() : -1
+    return m !== prevM ? `${m + 1}월` : ''
+  })
+
+  const activeDays = weeks.flat().filter(c => c.key <= todayKey && (activity[c.key] ?? 0) > 0).length
+
+  return (
+    <section className="bg-white rounded-[14px] border border-[#E6E6E6] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 mb-6">
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="text-[13px] font-bold text-[#222222]">운동 기록</p>
+        <p className="text-[11px] text-[#8B8B8B]">
+          최근 {HEAT_WEEKS}주 · <span className="text-[#222222] font-semibold tabular-nums">{activeDays}일</span> 운동
+        </p>
+      </div>
+
+      <div className="overflow-x-auto -mx-1 px-1">
+        <div className="inline-block">
+          {/* 월 라벨 */}
+          <div className="grid gap-[3px] mb-1" style={{ gridTemplateColumns: `repeat(${HEAT_WEEKS}, 11px)` }}>
+            {monthLabels.map((label, i) => (
+              <span key={i} className="text-[9px] text-[#BBBBBB] h-3 leading-none whitespace-nowrap">{label}</span>
+            ))}
+          </div>
+          {/* 셀 그리드 (컬럼=주, 행=요일) */}
+          <div className="grid grid-flow-col gap-[3px]" style={{ gridTemplateRows: 'repeat(7, 11px)', gridAutoColumns: '11px' }}>
+            {weeks.map(week =>
+              week.map(({ key }) => {
+                const isFuture = key > todayKey
+                const count = activity[key] ?? 0
+                const isSel = key === selected
+                const isToday = key === todayKey
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={isFuture}
+                    onClick={() => onSelect(key)}
+                    title={isFuture ? '' : `${key} · ${count}세트`}
+                    aria-label={`${key} ${count}세트`}
+                    className="w-[11px] h-[11px] rounded-[2px] p-0 border-0 transition-all duration-100"
+                    style={{
+                      backgroundColor: isFuture ? 'transparent' : HEAT_LEVELS[heatLevel(count)],
+                      boxShadow: isSel ? '0 0 0 1.5px #222222' : isToday ? '0 0 0 1.5px #BBBBBB' : 'none',
+                      cursor: isFuture ? 'default' : 'pointer',
+                    }}
+                  />
+                )
+              }),
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 범례 */}
+      <div className="flex items-center justify-end gap-1.5 mt-2.5">
+        <span className="text-[9px] text-[#BBBBBB]">적음</span>
+        {HEAT_LEVELS.map((c, i) => (
+          <span key={i} className="w-[11px] h-[11px] rounded-[2px]" style={{ backgroundColor: c }} />
+        ))}
+        <span className="text-[9px] text-[#BBBBBB]">많음</span>
+      </div>
+    </section>
   )
 }
 
