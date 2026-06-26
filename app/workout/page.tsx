@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 
 // ─── 3분할 루틴 데이터 ──────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ export default function WorkoutPage() {
   const [logDate, setLogDate] = useState(todayStr())
   const [activeDay, setActiveDay] = useState<'d1' | 'd2' | 'd3'>('d1')
   const [records, setRecords] = useState<Record<string, SetRecord>>({})
+  const recordsRef = useRef<Record<string, SetRecord>>({}) // 동기 병합용 최신 스냅샷
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState('')
 
@@ -97,6 +98,7 @@ export default function WorkoutPage() {
             weight: r.weight, reps: r.reps, done: r.done,
           }
         }
+        recordsRef.current = next
         setRecords(next)
       } finally {
         if (!cancelled) setLoading(false)
@@ -113,8 +115,10 @@ export default function WorkoutPage() {
   // 단일 세트 upsert
   const saveSet = useCallback(async (day: string, ex: string, i: number, patch: Partial<SetRecord>) => {
     const key = recKey(day, ex, i)
-    const merged: SetRecord = { weight: null, reps: null, done: false, ...records[key], ...patch }
-    setRecords(prev => ({ ...prev, [key]: merged }))
+    // ref에서 최신 값을 동기적으로 병합 — 무게·횟수·완료 연속 저장 시 서로 덮어쓰지 않도록
+    const merged: SetRecord = { weight: null, reps: null, done: false, ...recordsRef.current[key], ...patch }
+    recordsRef.current = { ...recordsRef.current, [key]: merged }
+    setRecords(recordsRef.current)
     try {
       const supabase = createClient()
       const { error } = await supabase.from('workout_sets').upsert(
@@ -126,7 +130,7 @@ export default function WorkoutPage() {
     } catch (e) {
       console.error(e); showToast('저장 실패')
     }
-  }, [logDate, records, showToast])
+  }, [logDate, showToast])
 
   // 분할별 완료 세트 수
   function dayDoneCount(day: Day) {
@@ -286,8 +290,9 @@ function NumField({ value, placeholder, onCommit }: {
   // 외부 값(로드/날짜 변경) 동기화
   useEffect(() => { setText(value != null ? String(value) : '') }, [value])
 
-  function commit() {
-    const trimmed = text.trim()
+  // blur 시점의 DOM 값을 직접 읽음 — setText 비동기 지연과 무관하게 항상 정확한 값 커밋
+  function commit(raw: string) {
+    const trimmed = raw.trim()
     const num = trimmed === '' ? null : Number(trimmed)
     onCommit(num != null && Number.isFinite(num) ? num : null)
   }
@@ -299,7 +304,7 @@ function NumField({ value, placeholder, onCommit }: {
       value={text}
       placeholder={placeholder}
       onChange={e => setText(e.target.value.replace(/[^\d.]/g, ''))}
-      onBlur={commit}
+      onBlur={e => commit(e.target.value)}
       onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
       className="w-full min-w-0 bg-[#F5F5F5] border border-[#E6E6E6] rounded-[10px] px-3 py-2 text-[13px] text-center
                  text-[#222222] placeholder:text-[#BBBBBB] tabular-nums
