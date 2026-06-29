@@ -98,6 +98,14 @@ export default function EarthlingsPage() {
   const captureRef = useRef<HTMLDivElement>(null);
   const isAdmin = adminSecret !== null;
 
+  // 카카오톡 인앱 브라우저에서 열리면 기기 기본 브라우저로 자동 연결
+  useEffect(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.indexOf("kakaotalk") > -1) {
+      location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+    }
+  }, []);
+
   useEffect(() => {
     setAdminSecret(localStorage.getItem("earthlings_admin"));
   }, []);
