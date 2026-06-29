@@ -94,7 +94,35 @@ export default function EarthlingsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [adminSecret, setAdminSecret] = useState<string | null>(null);
   const captureRef = useRef<HTMLDivElement>(null);
+  const isAdmin = adminSecret !== null;
+
+  useEffect(() => {
+    setAdminSecret(localStorage.getItem("earthlings_admin"));
+  }, []);
+
+  async function handleLogin() {
+    const pw = prompt("관리자 비밀번호를 입력하세요:");
+    if (!pw) return;
+    const res = await fetch("/api/earthlings", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-admin-secret": pw },
+      body: JSON.stringify({ kind: "verify" }),
+    });
+    if (res.ok) {
+      localStorage.setItem("earthlings_admin", pw);
+      setAdminSecret(pw);
+    } else {
+      alert("비밀번호가 틀렸어요.");
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("earthlings_admin");
+    setAdminSecret(null);
+    setManageMode(false);
+  }
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -142,66 +170,92 @@ export default function EarthlingsPage() {
     return `${max + 1}호`;
   };
 
+  async function writeRow(payload: object) {
+    const res = await fetch("/api/earthlings", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-admin-secret": adminSecret ?? "" },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 401) {
+      handleLogout();
+      alert("로그인이 만료됐어요. 다시 로그인해주세요.");
+      return false;
+    }
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: "오류" }));
+      alert("저장 오류: " + error);
+      return false;
+    }
+    return true;
+  }
+
   const handleSave = async () => {
     if (saving) return;
-    const supabase = createClient();
+    let payload: object;
     if (form.type === "baby") {
       if (!form.name.trim() || !form.parent1.trim() || !form.birthdate) {
         alert("이름, 엄마/아빠, 생년월일(예정일)은 필수예요.");
         return;
       }
-      setSaving(true);
-      const { error } = await supabase.from("earthlings_babies").insert({
-        num: nextNum(),
-        parent1: form.parent1.trim(),
-        parent2: form.parent2.trim(),
-        name: form.name.trim(),
-        birthdate: form.birthdate,
-        housewarming: form.housewarming,
-        status: form.status,
-        gender: form.gender,
-        sort_order: babies.length + 1,
-      });
-      setSaving(false);
-      if (error) {
-        alert("저장 오류: " + error.message);
-        return;
-      }
+      payload = {
+        kind: "baby",
+        row: {
+          num: nextNum(),
+          parent1: form.parent1.trim(),
+          parent2: form.parent2.trim(),
+          name: form.name.trim(),
+          birthdate: form.birthdate,
+          housewarming: form.housewarming,
+          status: form.status,
+          gender: form.gender,
+          sort_order: babies.length + 1,
+        },
+      };
     } else {
       if (!form.parent1.trim()) {
         alert("이름은 필수예요.");
         return;
       }
-      setSaving(true);
-      const { error } = await supabase.from("earthlings_waiting").insert({
-        parent1: form.parent1.trim(),
-        parent2: form.parent2.trim(),
-        housewarming: form.waitingHousewarming,
-        sort_order: waitingList.length + 1,
-      });
-      setSaving(false);
-      if (error) {
-        alert("저장 오류: " + error.message);
-        return;
-      }
+      payload = {
+        kind: "waiting",
+        row: {
+          parent1: form.parent1.trim(),
+          parent2: form.parent2.trim(),
+          housewarming: form.waitingHousewarming,
+          sort_order: waitingList.length + 1,
+        },
+      };
     }
+    setSaving(true);
+    const ok = await writeRow(payload);
+    setSaving(false);
+    if (!ok) return;
     setForm(emptyForm);
     setShowAdd(false);
     load();
   };
 
+  async function deleteRow(kind: "baby" | "waiting", id: number) {
+    const res = await fetch(`/api/earthlings?kind=${kind}&id=${id}`, {
+      method: "DELETE",
+      headers: { "x-admin-secret": adminSecret ?? "" },
+    });
+    if (res.status === 401) {
+      handleLogout();
+      alert("로그인이 만료됐어요. 다시 로그인해주세요.");
+      return;
+    }
+    load();
+  }
+
   const handleDeleteBaby = async (id: number, name: string) => {
     if (!confirm(`${name} 기록을 삭제할까요?`)) return;
-    const supabase = createClient();
-    await supabase.from("earthlings_babies").delete().eq("id", id);
-    load();
+    deleteRow("baby", id);
   };
 
   const handleDeleteWaiting = async (id: number, name: string) => {
     if (!confirm(`${name} 대기 기록을 삭제할까요?`)) return;
-    const supabase = createClient();
-    await supabase.from("earthlings_waiting").delete().eq("id", id);
-    load();
+    deleteRow("waiting", id);
   };
 
   const filtered =
@@ -257,17 +311,28 @@ export default function EarthlingsPage() {
                   </button>
                 ))}
               </div>
+              {isAdmin && (
+                <button
+                  onClick={() => setManageMode((m) => !m)}
+                  style={{ background: manageMode ? "#FEE2E2" : "#F4F4F6", color: manageMode ? "#DC2626" : "#71717A", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                >
+                  {manageMode ? "완료" : "관리"}
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => { setForm(emptyForm); setShowAdd(true); }}
+                  style={{ background: "#6366f1", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                >
+                  + 추가
+                </button>
+              )}
               <button
-                onClick={() => setManageMode((m) => !m)}
-                style={{ background: manageMode ? "#FEE2E2" : "#F4F4F6", color: manageMode ? "#DC2626" : "#71717A", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                onClick={isAdmin ? handleLogout : handleLogin}
+                title={isAdmin ? "로그아웃" : "관리자 로그인"}
+                style={{ background: "#F4F4F6", color: "#71717A", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
               >
-                {manageMode ? "완료" : "관리"}
-              </button>
-              <button
-                onClick={() => { setForm(emptyForm); setShowAdd(true); }}
-                style={{ background: "#6366f1", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-              >
-                + 추가
+                {isAdmin ? "🔓" : "🔒"}
               </button>
               <button
                 onClick={handleCapture}
