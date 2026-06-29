@@ -1,13 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
-
-declare global {
-  interface Window {
-    html2canvas: (element: HTMLElement, options?: object) => Promise<HTMLCanvasElement>;
-  }
-}
 
 type Baby = {
   id: number;
@@ -89,13 +83,11 @@ export default function EarthlingsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "incoming" | "birthday">("all");
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
-  const [capturing, setCapturing] = useState(false);
   const [manageMode, setManageMode] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [adminSecret, setAdminSecret] = useState<string | null>(null);
-  const captureRef = useRef<HTMLDivElement>(null);
   const isAdmin = adminSecret !== null;
 
   // 카카오톡 인앱 브라우저에서 열리면 기기 기본 브라우저로 자동 연결
@@ -146,29 +138,6 @@ export default function EarthlingsPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    document.head.appendChild(script);
-  }, []);
-
-  const handleCapture = async () => {
-    if (!captureRef.current || !window.html2canvas) return;
-    setManageMode(false);
-    setCapturing(true);
-    await new Promise((r) => setTimeout(r, 100));
-    const canvas = await window.html2canvas(captureRef.current, {
-      backgroundColor: "#F8F8FA",
-      scale: 2,
-      useCORS: true,
-    });
-    const link = document.createElement("a");
-    link.download = "지구의아이들.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    setCapturing(false);
-  };
 
   const nextNum = () => {
     const max = babies.reduce((m, b) => {
@@ -342,13 +311,6 @@ export default function EarthlingsPage() {
               >
                 {isAdmin ? "🔓" : "🔒"}
               </button>
-              <button
-                onClick={handleCapture}
-                disabled={capturing}
-                style={{ background: capturing ? "#E4E4E7" : "#18181B", color: "#fff", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-              >
-                {capturing ? "캡쳐 중..." : "📸 캡쳐"}
-              </button>
             </div>
           </div>
 
@@ -377,7 +339,7 @@ export default function EarthlingsPage() {
         </div>
       </div>
 
-      <div ref={captureRef} style={{ maxWidth: 720, margin: "0 auto", padding: "20px 24px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "20px 24px" }}>
         {/* 출산예정 배너 */}
         {babies.filter((b) => b.status === "incoming").map((baby) => (
           <div
