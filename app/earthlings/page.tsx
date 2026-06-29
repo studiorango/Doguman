@@ -427,8 +427,8 @@ export default function EarthlingsPage() {
                     <span style={{ background: "#F4F4F6", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#3f3f46" }}>{age.label}</span>
                     <span style={{ background: "#F4F4F6", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#3f3f46" }}>{age.days.toLocaleString()}일</span>
                     {baby.housewarming > 0 && (
-                      <span style={{ background: "#EEF2FF", borderRadius: 8, padding: "3px 8px", fontSize: 10, fontWeight: 600, color: "#6366f1" }}>
-                        {"🎖️".repeat(baby.housewarming)}
+                      <span style={{ background: "#EEF2FF", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#6366f1" }}>
+                        집들이 {baby.housewarming}회
                       </span>
                     )}
                   </div>
@@ -489,9 +489,9 @@ export default function EarthlingsPage() {
                       </td>
                       <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
                         {baby.housewarming > 0 ? (
-                          <span style={{ fontSize: 11, letterSpacing: "-2px" }}>{"🎖️".repeat(baby.housewarming)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>{baby.housewarming}회</span>
                         ) : (
-                          <span style={{ color: "#D4D4D8" }}></span>
+                          <span style={{ color: "#D4D4D8" }}>-</span>
                         )}
                       </td>
                       {manageMode && (
@@ -518,8 +518,7 @@ export default function EarthlingsPage() {
                   {w.parent2 && <span style={{ fontSize: 14, color: "#71717A" }}> · {w.parent2}</span>}
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {w.housewarming && <span style={{ fontSize: 11, color: "#6366f1", background: "#EEF2FF", borderRadius: 6, padding: "2px 7px", fontWeight: 600 }}>🎖️</span>}
-                  <span style={{ fontSize: 11, color: "#A1A1AA", background: "#F4F4F6", borderRadius: 6, padding: "2px 7px", fontWeight: 600 }}>대기</span>
+                  {w.housewarming && <span style={{ fontSize: 11, color: "#6366f1", background: "#EEF2FF", borderRadius: 6, padding: "2px 7px", fontWeight: 600 }}>집들이</span>}
                   {manageMode && (
                     <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
                   )}
@@ -543,8 +542,9 @@ export default function EarthlingsPage() {
           ))}
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 11, color: "#C4C4CC", marginTop: 24 }}>
-          생일 D-30, D-7, D-Day · 카카오톡 알림
+        <p style={{ textAlign: "center", fontSize: 11, color: "#C4C4CC", marginTop: 24, lineHeight: 1.7 }}>
+          생일 D-30, D-7, D-Day · 카카오톡 알림<br />
+          © 2026 김민제. All rights reserved.
         </p>
       </div>
 
@@ -623,7 +623,7 @@ export default function EarthlingsPage() {
                     </div>
                   </Field>
                 </div>
-                <Field label={`집들이 횟수 ${"🎖️".repeat(form.housewarming)}`}>
+                <Field label={`집들이 횟수 (${form.housewarming}회)`}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <button onClick={() => setForm((f) => ({ ...f, housewarming: Math.max(0, f.housewarming - 1) }))} style={stepperStyle}>−</button>
                     <span style={{ fontSize: 16, fontWeight: 700, color: "#18181B", minWidth: 20, textAlign: "center" }}>{form.housewarming}</span>
@@ -646,7 +646,7 @@ export default function EarthlingsPage() {
                     style={{ padding: "10px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left",
                       border: form.waitingHousewarming ? "2px solid #6366f1" : "1px solid #E4E4E7",
                       background: form.waitingHousewarming ? "#EEF2FF" : "#fff", color: form.waitingHousewarming ? "#6366f1" : "#71717A" }}>
-                    {form.waitingHousewarming ? "🎖️ 완료" : "미완료"}
+                    {form.waitingHousewarming ? "집들이 완료" : "미완료"}
                   </button>
                 </Field>
               </div>
