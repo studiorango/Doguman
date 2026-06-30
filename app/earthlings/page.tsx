@@ -434,7 +434,7 @@ export default function EarthlingsPage() {
                     <span style={{ background: "#F4F4F6", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#3f3f46" }}>{age.label}</span>
                     <span style={{ background: "#F4F4F6", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#3f3f46" }}>{age.days.toLocaleString()}일</span>
                     {baby.housewarming > 0 && (
-                      <span style={{ background: "#EEF2FF", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 600, color: "#6366f1" }}>
+                      <span style={{ background: "#F4F4F6", borderRadius: 8, padding: "3px 8px", fontSize: 11, fontWeight: 700, color: "#18181B" }}>
                         집들이 {baby.housewarming}회
                       </span>
                     )}
@@ -498,7 +498,7 @@ export default function EarthlingsPage() {
                       </td>
                       <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
                         {baby.housewarming > 0 ? (
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>{baby.housewarming}회</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#18181B" }}>{baby.housewarming}회</span>
                         ) : (
                           <span style={{ color: "#D4D4D8" }}>-</span>
                         )}
@@ -548,7 +548,7 @@ export default function EarthlingsPage() {
                       <td style={{ padding: "10px 12px", textAlign: "center" }}>{dash}</td>
                       <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
                         {w.housewarming > 0 ? (
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>{w.housewarming}회</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#18181B" }}>{w.housewarming}회</span>
                         ) : dash}
                       </td>
                       <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
