@@ -34,6 +34,19 @@ const PREDICTION: Record<Prediction, { label: string; color: string; bg: string 
   correct: { label: "적중", color: "#16A34A", bg: "#DCFCE7" },
 };
 
+// 두 표(아이/대기)의 칸 폭을 동일하게 고정 → 세로 정렬 맞춤
+const TableCols = ({ manage }: { manage: boolean }) => (
+  <colgroup>
+    <col style={{ width: "14%" }} />
+    <col style={{ width: "17%" }} />
+    <col style={{ width: "22%" }} />
+    <col style={{ width: "20%" }} />
+    <col style={{ width: "12%" }} />
+    <col style={{ width: "15%" }} />
+    {manage && <col style={{ width: 40 }} />}
+  </colgroup>
+);
+
 const PredictionBadge = ({ value }: { value: Prediction }) => {
   const p = PREDICTION[value] ?? PREDICTION.none;
   return (
@@ -436,7 +449,8 @@ export default function EarthlingsPage() {
         {/* 테이블 뷰 */}
         {viewMode === "table" && (
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEEEF2", overflow: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+              <TableCols manage={manageMode} />
               <thead>
                 <tr style={{ borderBottom: "1px solid #EEEEF2" }}>
                   {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "인용 예측"].map((h) => (
@@ -508,7 +522,8 @@ export default function EarthlingsPage() {
         <div style={{ marginTop: 24 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "#3f3f46", marginBottom: 12 }}>대기 중 ({waitingList.length}팀)</h2>
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEEEF2", overflow: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+              <TableCols manage={manageMode} />
               <thead>
                 <tr style={{ borderBottom: "1px solid #EEEEF2" }}>
                   {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "인용 예측"].map((h) => (
