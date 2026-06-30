@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase";
 
+type Prediction = "none" | "son" | "daughter" | "correct";
+
 type Baby = {
   id: number;
   num: string;
@@ -13,6 +15,7 @@ type Baby = {
   housewarming: number;
   status: "born" | "incoming";
   gender: "m" | "f";
+  prediction: Prediction;
 };
 
 type WaitingFamily = {
@@ -20,6 +23,24 @@ type WaitingFamily = {
   parent1: string;
   parent2: string;
   housewarming: boolean;
+  prediction: Prediction;
+};
+
+// 예측 표시 설정
+const PREDICTION: Record<Prediction, { label: string; color: string; bg: string }> = {
+  none: { label: "예측 안함", color: "#A1A1AA", bg: "#F4F4F6" },
+  son: { label: "아들 예측", color: "#3B82F6", bg: "#DBEAFE" },
+  daughter: { label: "딸 예측", color: "#EC4899", bg: "#FCE7F3" },
+  correct: { label: "적중", color: "#16A34A", bg: "#DCFCE7" },
+};
+
+const PredictionBadge = ({ value }: { value: Prediction }) => {
+  const p = PREDICTION[value] ?? PREDICTION.none;
+  return (
+    <span style={{ fontSize: 11, fontWeight: 600, color: p.color, background: p.bg, borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>
+      {p.label}
+    </span>
+  );
 };
 
 function getAge(birthdate: string) {
@@ -75,6 +96,7 @@ const emptyForm = {
   status: "born" as "born" | "incoming",
   housewarming: 0,
   waitingHousewarming: false,
+  prediction: "none" as Prediction,
 };
 
 export default function EarthlingsPage() {
@@ -185,6 +207,7 @@ export default function EarthlingsPage() {
           housewarming: form.housewarming,
           status: form.status,
           gender: form.gender,
+          prediction: form.prediction,
           sort_order: babies.length + 1,
         },
       };
@@ -199,6 +222,7 @@ export default function EarthlingsPage() {
           parent1: form.parent1.trim(),
           parent2: form.parent2.trim(),
           housewarming: form.waitingHousewarming,
+          prediction: form.prediction,
           sort_order: waitingList.length + 1,
         },
       };
@@ -401,6 +425,7 @@ export default function EarthlingsPage() {
                         집들이 {baby.housewarming}회
                       </span>
                     )}
+                    <PredictionBadge value={baby.prediction} />
                   </div>
                   <div style={{ marginTop: 8, fontSize: 11, color: "#A1A1AA" }}>{baby.birthdate}</div>
                 </div>
@@ -415,7 +440,7 @@ export default function EarthlingsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #EEEEF2" }}>
-                  {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이"].map((h) => (
+                  {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "예측"].map((h) => (
                     <th key={h} style={{ padding: "11px 12px", textAlign: "center", background: "#F8F8FA", fontSize: 11, fontWeight: 700, color: "#71717A", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
                       {h}
                     </th>
@@ -464,6 +489,9 @@ export default function EarthlingsPage() {
                           <span style={{ color: "#D4D4D8" }}>-</span>
                         )}
                       </td>
+                      <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
+                        <PredictionBadge value={baby.prediction} />
+                      </td>
                       {manageMode && (
                         <td style={{ padding: "10px 8px", textAlign: "center" }}>
                           <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
@@ -488,6 +516,7 @@ export default function EarthlingsPage() {
                   {w.parent2 && <span style={{ fontSize: 14, color: "#71717A" }}> · {w.parent2}</span>}
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {w.prediction !== "none" && <PredictionBadge value={w.prediction} />}
                   {w.housewarming && <span style={{ fontSize: 11, color: "#6366f1", background: "#EEF2FF", borderRadius: 6, padding: "2px 7px", fontWeight: 600 }}>집들이</span>}
                   {manageMode && (
                     <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
@@ -600,6 +629,7 @@ export default function EarthlingsPage() {
                     <button onClick={() => setForm((f) => ({ ...f, housewarming: f.housewarming + 1 }))} style={stepperStyle}>+</button>
                   </div>
                 </Field>
+                <PredictionSelect value={form.prediction} onChange={(v) => setForm((f) => ({ ...f, prediction: v }))} />
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -619,6 +649,7 @@ export default function EarthlingsPage() {
                     {form.waitingHousewarming ? "집들이 완료" : "미완료"}
                   </button>
                 </Field>
+                <PredictionSelect value={form.prediction} onChange={(v) => setForm((f) => ({ ...f, prediction: v }))} />
               </div>
             )}
 
@@ -652,5 +683,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#71717A", marginBottom: 6 }}>{label}</span>
       {children}
     </label>
+  );
+}
+
+function PredictionSelect({ value, onChange }: { value: Prediction; onChange: (v: Prediction) => void }) {
+  return (
+    <Field label="예측 (아들/딸)">
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {(["none", "son", "daughter", "correct"] as Prediction[]).map((k) => {
+          const p = PREDICTION[k];
+          const on = value === k;
+          return (
+            <button
+              key={k}
+              onClick={() => onChange(k)}
+              style={{
+                flex: "1 0 calc(50% - 3px)", padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                border: on ? `2px solid ${p.color}` : "1px solid #E4E4E7",
+                background: on ? p.bg : "#fff", color: on ? p.color : "#71717A",
+              }}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </Field>
   );
 }
