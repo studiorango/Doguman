@@ -31,7 +31,7 @@ const PREDICTION: Record<Prediction, { label: string; color: string; bg: string 
   none: { label: "예측 안함", color: "#A1A1AA", bg: "#F4F4F6" },
   son: { label: "아들 예측", color: "#3B82F6", bg: "#DBEAFE" },
   daughter: { label: "딸 예측", color: "#EC4899", bg: "#FCE7F3" },
-  correct: { label: "적중", color: "#16A34A", bg: "#DCFCE7" },
+  correct: { label: "적중", color: "#FFFFFF", bg: "#18181B" },
 };
 
 // 두 표(아이/대기)의 칸 폭을 동일하게 고정 → 세로 정렬 맞춤
@@ -49,8 +49,9 @@ const TableCols = ({ manage }: { manage: boolean }) => (
 
 const PredictionBadge = ({ value }: { value: Prediction }) => {
   const p = PREDICTION[value] ?? PREDICTION.none;
+  const emphasized = value === "correct";
   return (
-    <span style={{ fontSize: 11, fontWeight: 600, color: p.color, background: p.bg, borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>
+    <span style={{ fontSize: 11, fontWeight: emphasized ? 700 : 600, color: p.color, background: p.bg, borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap", letterSpacing: emphasized ? "0.02em" : undefined }}>
       {p.label}
     </span>
   );
