@@ -22,7 +22,7 @@ type WaitingFamily = {
   id: number;
   parent1: string;
   parent2: string;
-  housewarming: boolean;
+  housewarming: number;
   prediction: Prediction;
 };
 
@@ -95,7 +95,6 @@ const emptyForm = {
   gender: "m" as "m" | "f",
   status: "born" as "born" | "incoming",
   housewarming: 0,
-  waitingHousewarming: false,
   prediction: "none" as Prediction,
 };
 
@@ -221,7 +220,7 @@ export default function EarthlingsPage() {
         row: {
           parent1: form.parent1.trim(),
           parent2: form.parent2.trim(),
-          housewarming: form.waitingHousewarming,
+          housewarming: form.housewarming,
           prediction: form.prediction,
           sort_order: waitingList.length + 1,
         },
@@ -440,7 +439,7 @@ export default function EarthlingsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #EEEEF2" }}>
-                  {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "예측"].map((h) => (
+                  {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "인용 예측"].map((h) => (
                     <th key={h} style={{ padding: "11px 12px", textAlign: "center", background: "#F8F8FA", fontSize: 11, fontWeight: 700, color: "#71717A", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
                       {h}
                     </th>
@@ -505,25 +504,50 @@ export default function EarthlingsPage() {
           </div>
         )}
 
-        {/* 대기 명단 */}
+        {/* 대기 명단 — 위 표와 동일 양식 (아이 관련 칸은 -) */}
         <div style={{ marginTop: 24 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "#3f3f46", marginBottom: 12 }}>대기 중 ({waitingList.length}팀)</h2>
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEEEF2", overflow: "hidden" }}>
-            {waitingList.map((w, i) => (
-              <div key={w.id} style={{ padding: "12px 16px", borderBottom: i < waitingList.length - 1 ? "1px solid #F4F4F6" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#18181B" }}>{w.parent1}</span>
-                  {w.parent2 && <span style={{ fontSize: 14, color: "#71717A" }}> · {w.parent2}</span>}
-                </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  {w.prediction !== "none" && <PredictionBadge value={w.prediction} />}
-                  {w.housewarming && <span style={{ fontSize: 11, color: "#6366f1", background: "#EEF2FF", borderRadius: 6, padding: "2px 7px", fontWeight: 600 }}>집들이</span>}
-                  {manageMode && (
-                    <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEEEF2", overflow: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid #EEEEF2" }}>
+                  {["이름", "부모", "생년월일 · 생일", "나이 / 일수", "집들이", "인용 예측"].map((h) => (
+                    <th key={h} style={{ padding: "11px 12px", textAlign: "center", background: "#F8F8FA", fontSize: 11, fontWeight: 700, color: "#71717A", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                  {manageMode && <th style={{ background: "#F8F8FA", width: 40 }} />}
+                </tr>
+              </thead>
+              <tbody>
+                {waitingList.map((w, i) => {
+                  const dash = <span style={{ color: "#D4D4D8" }}>-</span>;
+                  return (
+                    <tr key={w.id} style={{ borderBottom: i < waitingList.length - 1 ? "1px solid #F4F4F6" : "none", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                      <td style={{ padding: "10px 12px", textAlign: "center" }}>{dash}</td>
+                      <td style={{ padding: "10px 12px", color: "#3f3f46", whiteSpace: "nowrap", fontSize: 12, textAlign: "center" }}>
+                        {w.parent1}<br /><span style={{ color: "#71717A" }}>{w.parent2}</span>
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "center" }}>{dash}</td>
+                      <td style={{ padding: "10px 12px", textAlign: "center" }}>{dash}</td>
+                      <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
+                        {w.housewarming > 0 ? (
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#6366f1" }}>{w.housewarming}회</span>
+                        ) : dash}
+                      </td>
+                      <td style={{ padding: "10px 12px", whiteSpace: "nowrap", textAlign: "center" }}>
+                        <PredictionBadge value={w.prediction} />
+                      </td>
+                      {manageMode && (
+                        <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                          <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -641,13 +665,12 @@ export default function EarthlingsPage() {
                     <input value={form.parent2} onChange={(e) => setForm((f) => ({ ...f, parent2: e.target.value }))} placeholder="김영진" style={inputStyle} />
                   </Field>
                 </div>
-                <Field label="집들이 완료">
-                  <button onClick={() => setForm((f) => ({ ...f, waitingHousewarming: !f.waitingHousewarming }))}
-                    style={{ padding: "10px 14px", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left",
-                      border: form.waitingHousewarming ? "2px solid #6366f1" : "1px solid #E4E4E7",
-                      background: form.waitingHousewarming ? "#EEF2FF" : "#fff", color: form.waitingHousewarming ? "#6366f1" : "#71717A" }}>
-                    {form.waitingHousewarming ? "집들이 완료" : "미완료"}
-                  </button>
+                <Field label={`집들이 횟수 (${form.housewarming}회)`}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button onClick={() => setForm((f) => ({ ...f, housewarming: Math.max(0, f.housewarming - 1) }))} style={stepperStyle}>−</button>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "#18181B", minWidth: 20, textAlign: "center" }}>{form.housewarming}</span>
+                    <button onClick={() => setForm((f) => ({ ...f, housewarming: f.housewarming + 1 }))} style={stepperStyle}>+</button>
+                  </div>
                 </Field>
                 <PredictionSelect value={form.prediction} onChange={(v) => setForm((f) => ({ ...f, prediction: v }))} />
               </div>
@@ -688,7 +711,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function PredictionSelect({ value, onChange }: { value: Prediction; onChange: (v: Prediction) => void }) {
   return (
-    <Field label="예측 (아들/딸)">
+    <Field label="인용 예측 (아들/딸)">
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {(["none", "son", "daughter", "correct"] as Prediction[]).map((k) => {
           const p = PREDICTION[k];
