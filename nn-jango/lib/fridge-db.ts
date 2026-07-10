@@ -26,6 +26,12 @@ export type DbFridgeRecipe = {
   youtube_url: string | null;
   cuisine: string | null;
   pairing: string | null;
+  category: string | null;
+  carbs: number | null;
+  protein: number | null;
+  fat: number | null;
+  rating: number | null;
+  kid_friendly: boolean;
   created_at: string;
 };
 
@@ -89,6 +95,12 @@ export async function saveRecipe(recipe: {
   youtube_url?: string | null;
   cuisine?: string | null;
   pairing?: string | null;
+  category?: string | null;
+  carbs?: number | null;
+  protein?: number | null;
+  fat?: number | null;
+  rating?: number | null;
+  kid_friendly?: boolean;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인 필요');
@@ -111,6 +123,12 @@ export async function updateRecipe(id: string, patch: Partial<{
   youtube_url: string | null;
   cuisine: string | null;
   pairing: string | null;
+  category: string | null;
+  carbs: number | null;
+  protein: number | null;
+  fat: number | null;
+  rating: number | null;
+  kid_friendly: boolean;
 }>) {
   const { error } = await supabase
     .from('fridge_recipes')

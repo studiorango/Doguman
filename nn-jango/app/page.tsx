@@ -29,6 +29,12 @@ type Recipe = {
   youtubeUrl: string;
   cuisine: string;
   pairing: string;
+  category: string;
+  carbs: number | null;
+  protein: number | null;
+  fat: number | null;
+  rating: number;
+  kidFriendly: boolean;
 };
 type IngRow = { name: string; amount: string; unit: string };
 type StepRow = { label: string; unit: "min" | "sec"; value: number };
@@ -49,6 +55,7 @@ const YT_PRESETS = ["냉부해", "승우아빠", "은수저", "육식맨", "이�
 const CUISINES = ["한식", "중식", "일식", "양식", "동남아식", "인도식", "멕시코식", "미국식"];
 const PAIRINGS = ["소주", "맥주", "막걸리", "청주·사케", "레드와인", "화이트와인", "하이볼", "위스키", "고량주", "논알콜"];
 const UNITS = ["개", "마리", "g", "kg", "ml", "L", "큰술", "작은술", "컵", "조각", "장", "줌", "꼬집", "대", "쪽", "톨", "봉", "캔", "병", "박스", "약간"];
+const CATEGORIES = ["밥요리", "면요리", "빵·베이커리", "국물요리", "고기요리", "생선·해산물", "볶음·구이", "튀김", "찜·조림", "샐러드·채소", "죽·스프", "반찬", "디저트", "음료", "기타"];
 
 const cardCls = "bg-white rounded-[14px] border border-zinc-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-4";
 const inputCls = "w-full bg-zinc-50 border border-zinc-200 rounded-[10px] px-3 py-2.5 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 transition-colors";
@@ -103,6 +110,36 @@ function PctBar({ pct }: { pct: number }) {
   );
 }
 
+function StarRating({ value, onChange, size = 28 }: { value: number; onChange?: (v: number) => void; size?: number }) {
+  const readOnly = !onChange;
+  return (
+    <div className="flex items-center gap-1">
+      <div className="flex">
+        {[1, 2, 3, 4, 5].map((i) => {
+          const fill = value >= i ? 1 : value >= i - 0.5 ? 0.5 : 0;
+          return (
+            <div key={i} className="relative" style={{ width: size, height: size }}>
+              <Icon icon="solar:star-bold" className="absolute inset-0 text-zinc-200" width={size} height={size} />
+              <div className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                <Icon icon="solar:star-bold" className="text-zinc-900" width={size} height={size} />
+              </div>
+              {!readOnly && (
+                <>
+                  <button type="button" aria-label={`${i - 0.5}점`} onClick={() => onChange!(i - 0.5)} className="absolute left-0 top-0 w-1/2 h-full" />
+                  <button type="button" aria-label={`${i}점`} onClick={() => onChange!(i)} className="absolute right-0 top-0 w-1/2 h-full" />
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {!readOnly && value > 0 && (
+        <button type="button" onClick={() => onChange!(0)} className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-900 ml-1">지우기</button>
+      )}
+    </div>
+  );
+}
+
 export default function FridgePage() {
   const [tab, setTab] = useState<Tab>("stock");
   const [userId, setUserId] = useState<string | null>(null);
@@ -119,6 +156,12 @@ export default function FridgePage() {
   const [formYoutubeUrl, setFormYoutubeUrl] = useState("");
   const [formCuisine, setFormCuisine] = useState("");
   const [formPairing, setFormPairing] = useState("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formCarbs, setFormCarbs] = useState("");
+  const [formProtein, setFormProtein] = useState("");
+  const [formFat, setFormFat] = useState("");
+  const [formRating, setFormRating] = useState(0);
+  const [formKidFriendly, setFormKidFriendly] = useState(false);
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
   const [focusedIngRow, setFocusedIngRow] = useState<number | null>(null);
@@ -151,6 +194,8 @@ export default function FridgePage() {
       ingredientItems: r.ingredient_items ?? [],
       steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
       cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
+      category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
+      rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
     })));
     setLoaded(true);
   };
@@ -172,10 +217,17 @@ export default function FridgePage() {
     await removeFridgeStockItem(name);
   };
 
+  const resetExtraFields = () => {
+    setFormCategory(""); setFormCarbs(""); setFormProtein(""); setFormFat("");
+    setFormRating(0); setFormKidFriendly(false);
+  };
+  const numToStr = (n: number | null) => (n === null || n === undefined ? "" : String(n));
+
   const openNewForm = () => {
     setEditingId(null);
     setFormName(""); setFormSource(""); setFormYoutubeUrl("");
     setFormCuisine(""); setFormPairing("");
+    resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
   };
@@ -184,6 +236,8 @@ export default function FridgePage() {
     setEditingId(r.id);
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || "");
     setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
+    setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
+    setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
     setShowForm(true);
@@ -193,6 +247,7 @@ export default function FridgePage() {
     setEditingId(null);
     setFormName(v.title); setFormSource(channelTitle); setFormYoutubeUrl(videoUrl(v.id));
     setFormCuisine(""); setFormPairing("");
+    resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
   };
@@ -212,16 +267,23 @@ export default function FridgePage() {
     const youtubeUrl = formYoutubeUrl.trim() || null;
     const cuisine = formCuisine || null;
     const pairing = formPairing || null;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing };
+    const category = formCategory || null;
+    const parseNum = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
+    const carbs = parseNum(formCarbs);
+    const protein = parseNum(formProtein);
+    const fat = parseNum(formFat);
+    const rating = formRating > 0 ? formRating : null;
+    const kidFriendly = formKidFriendly;
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
     if (editingId) {
       setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "" }
+        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
         : r));
       await updateRecipe(editingId, payload);
     } else {
       const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "" }, ...prev]);
+      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
     }
     closeForm();
   };
@@ -384,6 +446,9 @@ export default function FridgePage() {
                           <p className="text-[11px] text-zinc-400 mt-0.5">
                             {r.source ? `${r.source} · ` : ""}{r.totalTime > 0 ? `${r.totalTime}분` : "시간 미정"}
                           </p>
+                          {r.rating > 0 && (
+                            <div className="mt-1"><StarRating value={r.rating} size={14} /></div>
+                          )}
                           {r.youtubeUrl && (
                             <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
                               영상 보기
@@ -396,17 +461,30 @@ export default function FridgePage() {
                         </div>
                       </div>
                       <PctBar pct={pct} />
-                      {(r.cuisine || r.pairing) && (
+                      {(r.cuisine || r.category || r.pairing || r.kidFriendly) && (
                         <div className="flex flex-wrap gap-1.5 mt-3">
                           {r.cuisine && (
                             <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>
+                          )}
+                          {r.category && (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>
                           )}
                           {r.pairing && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
                               <Icon icon="solar:wineglass-linear" width={12} />{r.pairing}
                             </span>
                           )}
+                          {r.kidFriendly && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white">
+                              <Icon icon="solar:smile-circle-linear" width={12} />아이 가능
+                            </span>
+                          )}
                         </div>
+                      )}
+                      {(r.carbs !== null || r.protein !== null || r.fat !== null) && (
+                        <p className="text-[11px] text-zinc-400 mt-2">
+                          {[r.carbs !== null && `탄 ${r.carbs}g`, r.protein !== null && `단 ${r.protein}g`, r.fat !== null && `지 ${r.fat}g`].filter(Boolean).join(" · ")}
+                        </p>
                       )}
                       {r.ingredients.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
@@ -738,6 +816,22 @@ export default function FridgePage() {
                 </div>
               </div>
               <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">카테고리</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATEGORIES.map((c) => {
+                    const sel = formCategory === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFormCategory((prev) => (prev === c ? "" : c))}
+                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                      >{c}</button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술</p>
                 <div className="flex flex-wrap gap-1.5">
                   {PAIRINGS.map((p) => {
@@ -753,6 +847,41 @@ export default function FridgePage() {
                   })}
                 </div>
               </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">영양성분 (선택 · g 단위)</p>
+                <div className="flex gap-2">
+                  {([
+                    ["탄수화물", formCarbs, setFormCarbs],
+                    ["단백질", formProtein, setFormProtein],
+                    ["지방", formFat, setFormFat],
+                  ] as const).map(([label, val, setter]) => (
+                    <div key={label} className="flex-1">
+                      <p className="text-[10px] font-semibold text-zinc-400 mb-1 text-center">{label}</p>
+                      <input
+                        className={`${inputCls} text-center`}
+                        placeholder="0"
+                        inputMode="decimal"
+                        value={val}
+                        onChange={(e) => setter(e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">별점</p>
+                <StarRating value={formRating} onChange={setFormRating} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormKidFriendly((p) => !p)}
+                className="flex items-center gap-2.5"
+              >
+                <span className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center flex-shrink-0 transition-colors ${formKidFriendly ? "bg-zinc-900 border-zinc-900" : "border-zinc-300"}`}>
+                  {formKidFriendly && <Icon icon="solar:check-read-linear" className="text-white" width={13} />}
+                </span>
+                <span className="text-[13px] font-semibold text-zinc-700">아이도 먹을 수 있는 음식</span>
+              </button>
               <div className="flex gap-2 mt-1">
                 <button onClick={submitForm} disabled={!formName.trim()} className={`${btnPrimaryCls} flex-1`}>{editingId ? "수정 저장" : "등록"}</button>
                 <button onClick={closeForm} className={`${btnSecondaryCls} px-5`}>취소</button>
