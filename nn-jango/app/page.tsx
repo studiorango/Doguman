@@ -687,6 +687,10 @@ export default function FridgePage() {
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">재료 (냉장고에 등록된 재료가 아래에 자동으로 추천돼요)</p>
                 <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => { setIngRows((prev) => [{ name: "", amount: "", unit: "" }, ...prev]); setFocusedIngRow(null); setUnitPickerRow(null); }}
+                    className={`${btnSecondaryCls} self-start`}
+                  >+ 재료 추가</button>
                   {ingRows.map((row, i) => {
                     const query = row.name.trim();
                     const suggestions = focusedIngRow === i && query
@@ -764,7 +768,6 @@ export default function FridgePage() {
                       </div>
                     );
                   })}
-                  <button onClick={() => setIngRows((prev) => [...prev, { name: "", amount: "", unit: "" }])} className={`${btnSecondaryCls} self-start`}>+ 재료 추가</button>
                 </div>
               </div>
               <div>
