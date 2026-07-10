@@ -27,6 +27,7 @@ type Recipe = {
   steps: FridgeStep[];
   totalTime: number;
   youtubeUrl: string;
+  link: string;
   cuisine: string;
   pairing: string;
   category: string;
@@ -154,6 +155,7 @@ export default function FridgePage() {
   const [formName, setFormName] = useState("");
   const [formSource, setFormSource] = useState("");
   const [formYoutubeUrl, setFormYoutubeUrl] = useState("");
+  const [formLink, setFormLink] = useState("");
   const [formCuisine, setFormCuisine] = useState("");
   const [formPairing, setFormPairing] = useState("");
   const [formCategory, setFormCategory] = useState("");
@@ -193,6 +195,7 @@ export default function FridgePage() {
       id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
       ingredientItems: r.ingredient_items ?? [],
       steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
+      link: r.link ?? "",
       cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
       category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
       rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
@@ -225,7 +228,7 @@ export default function FridgePage() {
 
   const openNewForm = () => {
     setEditingId(null);
-    setFormName(""); setFormSource(""); setFormYoutubeUrl("");
+    setFormName(""); setFormSource(""); setFormYoutubeUrl(""); setFormLink("");
     setFormCuisine(""); setFormPairing("");
     resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
@@ -234,7 +237,7 @@ export default function FridgePage() {
 
   const openEditForm = (r: Recipe) => {
     setEditingId(r.id);
-    setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || "");
+    setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
@@ -245,7 +248,7 @@ export default function FridgePage() {
 
   const openFormFromVideo = (v: Video, channelTitle: string) => {
     setEditingId(null);
-    setFormName(v.title); setFormSource(channelTitle); setFormYoutubeUrl(videoUrl(v.id));
+    setFormName(v.title); setFormSource(channelTitle); setFormYoutubeUrl(videoUrl(v.id)); setFormLink("");
     setFormCuisine(""); setFormPairing("");
     resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
@@ -265,6 +268,7 @@ export default function FridgePage() {
       .map((r) => ({ label: r.label.trim(), dur: stepRowDurMinutes(r) }));
     const totalTime = Math.round(steps.reduce((sum, s) => sum + s.dur, 0));
     const youtubeUrl = formYoutubeUrl.trim() || null;
+    const link = formLink.trim() || null;
     const cuisine = formCuisine || null;
     const pairing = formPairing || null;
     const category = formCategory || null;
@@ -274,16 +278,16 @@ export default function FridgePage() {
     const fat = parseNum(formFat);
     const rating = formRating > 0 ? formRating : null;
     const kidFriendly = formKidFriendly;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
     if (editingId) {
       setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
         : r));
       await updateRecipe(editingId, payload);
     } else {
       const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
     }
     closeForm();
   };
@@ -449,11 +453,18 @@ export default function FridgePage() {
                           {r.rating > 0 && (
                             <div className="mt-1"><StarRating value={r.rating} size={14} /></div>
                           )}
-                          {r.youtubeUrl && (
-                            <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
-                              영상 보기
-                            </a>
-                          )}
+                          <div className="flex gap-2">
+                            {r.youtubeUrl && (
+                              <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
+                                영상 보기
+                              </a>
+                            )}
+                            {r.link && (
+                              <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
+                                링크 열기
+                              </a>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button onClick={() => openEditForm(r)} className={btnSecondaryCls}>수정</button>
@@ -663,6 +674,10 @@ export default function FridgePage() {
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">출처 (선택)</p>
                 <input className={inputCls} placeholder="예: 육식맨, 백종원" value={formSource} onChange={(e) => setFormSource(e.target.value)} />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1">링크 (선택)</p>
+                <input className={inputCls} placeholder="예: https://blog.naver.com/..." inputMode="url" value={formLink} onChange={(e) => setFormLink(e.target.value)} />
               </div>
               {formYoutubeUrl && (
                 <a href={formYoutubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-500 hover:underline break-all">
