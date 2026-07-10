@@ -12,6 +12,7 @@ export { supabase };
 // 타입
 // =====================
 export type FridgeStep = { label: string; dur: number };
+export type FridgeIngredient = { name: string; amount: string; unit: string };
 
 export type DbFridgeRecipe = {
   id: string;
@@ -19,6 +20,7 @@ export type DbFridgeRecipe = {
   name: string;
   source: string | null;
   ingredients: string[];
+  ingredient_items: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
   youtube_url: string | null;
@@ -81,6 +83,7 @@ export async function saveRecipe(recipe: {
   name: string;
   source: string | null;
   ingredients: string[];
+  ingredient_items?: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
   youtube_url?: string | null;
@@ -102,6 +105,7 @@ export async function updateRecipe(id: string, patch: Partial<{
   name: string;
   source: string | null;
   ingredients: string[];
+  ingredient_items: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
   youtube_url: string | null;

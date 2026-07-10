@@ -14,6 +14,7 @@ import {
   updateRecipe,
   deleteRecipe,
   type FridgeStep,
+  type FridgeIngredient,
 } from "@/lib/fridge-db";
 
 type Tab = "stock" | "recipe" | "search" | "timetable";
@@ -22,13 +23,14 @@ type Recipe = {
   name: string;
   source: string;
   ingredients: string[];
+  ingredientItems: FridgeIngredient[];
   steps: FridgeStep[];
   totalTime: number;
   youtubeUrl: string;
   cuisine: string;
   pairing: string;
 };
-type IngRow = { text: string };
+type IngRow = { name: string; amount: string; unit: string };
 type StepRow = { label: string; unit: "min" | "sec"; value: number };
 type Video = { id: string; title: string; thumbnail: string; publishedAt: string };
 type YtChannel = {
@@ -46,6 +48,7 @@ const STEP_SHADES = ["#18181B", "#3F3F46", "#52525B", "#71717A", "#A1A1AA", "#D4
 const YT_PRESETS = ["냉부해", "승우아빠", "은수저", "육식맨", "이원일", "정호영"];
 const CUISINES = ["한식", "중식", "일식", "양식", "동남아식", "인도식", "멕시코식", "미국식"];
 const PAIRINGS = ["소주", "맥주", "막걸리", "청주·사케", "레드와인", "화이트와인", "하이볼", "위스키", "고량주", "논알콜"];
+const UNITS = ["개", "마리", "g", "kg", "ml", "L", "큰술", "작은술", "컵", "조각", "장", "줌", "꼬집", "대", "쪽", "톨", "봉", "캔", "병", "박스", "약간"];
 
 const cardCls = "bg-white rounded-[14px] border border-zinc-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-4";
 const inputCls = "w-full bg-zinc-50 border border-zinc-200 rounded-[10px] px-3 py-2.5 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 transition-colors";
@@ -54,7 +57,12 @@ const btnSecondaryCls = "bg-white text-zinc-700 border border-zinc-200 rounded-[
 const btnDestructiveCls = "text-[11px] font-semibold text-zinc-400 hover:text-red-600 transition-colors";
 
 function emptyIngRows(): IngRow[] {
-  return [{ text: "" }];
+  return [{ name: "", amount: "", unit: "" }];
+}
+function itemsToIngRows(items: FridgeIngredient[], names: string[]): IngRow[] {
+  if (items.length) return items.map((it) => ({ name: it.name, amount: it.amount ?? "", unit: it.unit ?? "" }));
+  if (names.length) return names.map((n) => ({ name: n, amount: "", unit: "" }));
+  return emptyIngRows();
 }
 function emptyStepRows(): StepRow[] {
   return [{ label: "", unit: "min", value: 1 }];
@@ -114,6 +122,7 @@ export default function FridgePage() {
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
   const [focusedIngRow, setFocusedIngRow] = useState<number | null>(null);
+  const [unitPickerRow, setUnitPickerRow] = useState<number | null>(null);
 
   const [selectedTT, setSelectedTT] = useState<Set<string>>(new Set());
 
@@ -139,6 +148,7 @@ export default function FridgePage() {
     setStock(stockData.map((s) => s.name));
     setRecipes(recipeData.map((r) => ({
       id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
+      ingredientItems: r.ingredient_items ?? [],
       steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
       cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
     })));
@@ -174,7 +184,7 @@ export default function FridgePage() {
     setEditingId(r.id);
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || "");
     setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
-    setIngRows(r.ingredients.length ? r.ingredients.map((text) => ({ text })) : emptyIngRows());
+    setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
     setShowForm(true);
   };
@@ -187,11 +197,14 @@ export default function FridgePage() {
     setShowForm(true);
   };
 
-  const closeForm = () => { setShowForm(false); setEditingId(null); setFocusedIngRow(null); };
+  const closeForm = () => { setShowForm(false); setEditingId(null); setFocusedIngRow(null); setUnitPickerRow(null); };
 
   const submitForm = async () => {
     if (!userId || !formName.trim()) return;
-    const ingredients = ingRows.map((r) => r.text.trim()).filter(Boolean);
+    const ingredientItems: FridgeIngredient[] = ingRows
+      .filter((r) => r.name.trim())
+      .map((r) => ({ name: r.name.trim(), amount: r.amount.trim(), unit: r.unit }));
+    const ingredients = ingredientItems.map((it) => it.name);
     const steps: FridgeStep[] = stepRows
       .filter((r) => r.label.trim())
       .map((r) => ({ label: r.label.trim(), dur: stepRowDurMinutes(r) }));
@@ -199,16 +212,16 @@ export default function FridgePage() {
     const youtubeUrl = formYoutubeUrl.trim() || null;
     const cuisine = formCuisine || null;
     const pairing = formPairing || null;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing };
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing };
 
     if (editingId) {
       setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "" }
+        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "" }
         : r));
       await updateRecipe(editingId, payload);
     } else {
       const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "" }, ...prev]);
+      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "" }, ...prev]);
     }
     closeForm();
   };
@@ -397,15 +410,18 @@ export default function FridgePage() {
                       )}
                       {r.ingredients.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {r.ingredients.map((ing) => (
-                            <span
-                              key={ing}
-                              className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                              style={stockNames.has(ing)
-                                ? { background: "#18181B", color: "#fff" }
-                                : { background: "#F4F4F5", color: "#A1A1AA" }}
-                            >{ing}</span>
-                          ))}
+                          {(r.ingredientItems.length ? r.ingredientItems : r.ingredients.map((n) => ({ name: n, amount: "", unit: "" }))).map((it, idx) => {
+                            const qty = [it.amount, it.unit].filter(Boolean).join(" ");
+                            return (
+                              <span
+                                key={`${it.name}-${idx}`}
+                                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                                style={stockNames.has(it.name)
+                                  ? { background: "#18181B", color: "#fff" }
+                                  : { background: "#F4F4F5", color: "#A1A1AA" }}
+                              >{it.name}{qty ? ` ${qty}` : ""}</span>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -579,46 +595,83 @@ export default function FridgePage() {
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">재료 (냉장고에 등록된 재료가 아래에 자동으로 추천돼요)</p>
                 <div className="flex flex-col gap-2">
                   {ingRows.map((row, i) => {
-                    const query = row.text.trim();
+                    const query = row.name.trim();
                     const suggestions = focusedIngRow === i && query
                       ? stock.filter((s) => s.includes(query) && s !== query)
                       : [];
                     return (
-                      <div key={i} className="relative">
-                        <div className="flex gap-2">
-                          <input
-                            className={inputCls}
-                            placeholder="재료명"
-                            value={row.text}
-                            onFocus={() => setFocusedIngRow(i)}
-                            onBlur={() => setTimeout(() => setFocusedIngRow((prev) => (prev === i ? null : prev)), 150)}
-                            onChange={(e) => setIngRows((prev) => prev.map((r, idx) => idx === i ? { text: e.target.value } : r))}
-                          />
+                      <div key={i} className="flex flex-col gap-1.5 p-2.5 rounded-[10px] border border-zinc-200">
+                        <div className="flex gap-2 items-start">
+                          <div className="relative flex-1">
+                            <input
+                              className={inputCls}
+                              placeholder="재료명"
+                              value={row.name}
+                              onFocus={() => setFocusedIngRow(i)}
+                              onBlur={() => setTimeout(() => setFocusedIngRow((prev) => (prev === i ? null : prev)), 150)}
+                              onChange={(e) => setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, name: e.target.value } : r))}
+                            />
+                            {suggestions.length > 0 && (
+                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-[8px] shadow-md z-20 max-h-[160px] overflow-y-auto">
+                                {suggestions.map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, name: s } : r));
+                                      setFocusedIngRow(null);
+                                    }}
+                                    className="block w-full text-left px-3 py-2 text-[12px] text-zinc-900 hover:bg-zinc-100"
+                                  >{s}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <button
                             onClick={() => setIngRows((prev) => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)}
-                            className={btnDestructiveCls}
+                            className={`${btnDestructiveCls} py-2.5`}
                           >삭제</button>
                         </div>
-                        {suggestions.length > 0 && (
-                          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-[8px] shadow-md z-10 max-h-[160px] overflow-y-auto">
-                            {suggestions.map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => {
-                                  setIngRows((prev) => prev.map((r, idx) => idx === i ? { text: s } : r));
-                                  setFocusedIngRow(null);
-                                }}
-                                className="block w-full text-left px-3 py-2 text-[12px] text-zinc-900 hover:bg-zinc-100"
-                              >{s}</button>
-                            ))}
+                        <div className="flex gap-2 items-center">
+                          <div className="w-[90px] flex-shrink-0">
+                            <input
+                              className={inputCls}
+                              placeholder="수량"
+                              value={row.amount}
+                              onChange={(e) => setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, amount: e.target.value } : r))}
+                            />
                           </div>
-                        )}
+                          <div className="relative flex-1">
+                            <button
+                              type="button"
+                              onClick={() => setUnitPickerRow((prev) => (prev === i ? null : i))}
+                              className={`w-full text-left bg-zinc-50 border rounded-[10px] px-3 py-2.5 text-[13px] transition-colors ${row.unit ? "text-zinc-900 border-zinc-300" : "text-zinc-400 border-zinc-200"} ${unitPickerRow === i ? "border-zinc-900 bg-white" : ""}`}
+                            >{row.unit || "단위 선택"}</button>
+                            {unitPickerRow === i && (
+                              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-[10px] shadow-md z-20 p-2 flex flex-wrap gap-1.5">
+                                {UNITS.map((u) => {
+                                  const sel = row.unit === u;
+                                  return (
+                                    <button
+                                      key={u}
+                                      type="button"
+                                      onClick={() => {
+                                        setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, unit: sel ? "" : u } : r));
+                                        setUnitPickerRow(null);
+                                      }}
+                                      className={`px-2.5 py-1 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                                    >{u}</button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
-                  <button onClick={() => setIngRows((prev) => [...prev, { text: "" }])} className={`${btnSecondaryCls} self-start`}>+ 재료 추가</button>
+                  <button onClick={() => setIngRows((prev) => [...prev, { name: "", amount: "", unit: "" }])} className={`${btnSecondaryCls} self-start`}>+ 재료 추가</button>
                 </div>
               </div>
               <div>
