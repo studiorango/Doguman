@@ -528,7 +528,7 @@ export default function FridgePage() {
               <div className="flex gap-2 mb-3">
                 <input
                   className={inputCls}
-                  placeholder="예: 육식맨, 백종원"
+                  placeholder="예: 육식맨, 승우아빠"
                   value={ytQuery}
                   onChange={(e) => setYtQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") searchChannel(); }}
