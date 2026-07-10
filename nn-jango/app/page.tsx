@@ -673,7 +673,7 @@ export default function FridgePage() {
               </div>
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">출처 (선택)</p>
-                <input className={inputCls} placeholder="예: 육식맨, 백종원" value={formSource} onChange={(e) => setFormSource(e.target.value)} />
+                <input className={inputCls} placeholder="예: 육식맨, 승우아빠" value={formSource} onChange={(e) => setFormSource(e.target.value)} />
               </div>
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">링크 (선택)</p>
