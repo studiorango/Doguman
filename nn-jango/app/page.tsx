@@ -25,6 +25,8 @@ type Recipe = {
   steps: FridgeStep[];
   totalTime: number;
   youtubeUrl: string;
+  cuisine: string;
+  pairing: string;
 };
 type IngRow = { text: string };
 type StepRow = { label: string; unit: "min" | "sec"; value: number };
@@ -42,6 +44,8 @@ type YtChannel = {
 
 const STEP_SHADES = ["#18181B", "#3F3F46", "#52525B", "#71717A", "#A1A1AA", "#D4D4D8"];
 const YT_PRESETS = ["냉부해", "승우아빠", "은수저", "육식맨", "이원일", "정호영"];
+const CUISINES = ["한식", "중식", "일식", "양식", "동남아식", "인도식", "멕시코식", "미국식"];
+const PAIRINGS = ["소주", "맥주", "막걸리", "청주·사케", "레드와인", "화이트와인", "하이볼", "위스키", "고량주", "논알콜"];
 
 const cardCls = "bg-white rounded-[14px] border border-zinc-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-4";
 const inputCls = "w-full bg-zinc-50 border border-zinc-200 rounded-[10px] px-3 py-2.5 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 transition-colors";
@@ -105,6 +109,8 @@ export default function FridgePage() {
   const [formName, setFormName] = useState("");
   const [formSource, setFormSource] = useState("");
   const [formYoutubeUrl, setFormYoutubeUrl] = useState("");
+  const [formCuisine, setFormCuisine] = useState("");
+  const [formPairing, setFormPairing] = useState("");
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
   const [focusedIngRow, setFocusedIngRow] = useState<number | null>(null);
@@ -134,6 +140,7 @@ export default function FridgePage() {
     setRecipes(recipeData.map((r) => ({
       id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
       steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
+      cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
     })));
     setLoaded(true);
   };
@@ -158,6 +165,7 @@ export default function FridgePage() {
   const openNewForm = () => {
     setEditingId(null);
     setFormName(""); setFormSource(""); setFormYoutubeUrl("");
+    setFormCuisine(""); setFormPairing("");
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
   };
@@ -165,6 +173,7 @@ export default function FridgePage() {
   const openEditForm = (r: Recipe) => {
     setEditingId(r.id);
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || "");
+    setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
     setIngRows(r.ingredients.length ? r.ingredients.map((text) => ({ text })) : emptyIngRows());
     setStepRows(stepsToStepRows(r.steps));
     setShowForm(true);
@@ -173,6 +182,7 @@ export default function FridgePage() {
   const openFormFromVideo = (v: Video, channelTitle: string) => {
     setEditingId(null);
     setFormName(v.title); setFormSource(channelTitle); setFormYoutubeUrl(videoUrl(v.id));
+    setFormCuisine(""); setFormPairing("");
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
   };
@@ -187,16 +197,18 @@ export default function FridgePage() {
       .map((r) => ({ label: r.label.trim(), dur: stepRowDurMinutes(r) }));
     const totalTime = Math.round(steps.reduce((sum, s) => sum + s.dur, 0));
     const youtubeUrl = formYoutubeUrl.trim() || null;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, steps, total_time: totalTime, youtube_url: youtubeUrl };
+    const cuisine = formCuisine || null;
+    const pairing = formPairing || null;
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, steps, total_time: totalTime, youtube_url: youtubeUrl, cuisine, pairing };
 
     if (editingId) {
       setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, steps, totalTime, youtubeUrl: youtubeUrl ?? "" }
+        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, steps, totalTime, youtubeUrl: youtubeUrl ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "" }
         : r));
       await updateRecipe(editingId, payload);
     } else {
       const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, steps, totalTime, youtubeUrl: saved.youtube_url ?? "" }, ...prev]);
+      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "" }, ...prev]);
     }
     closeForm();
   };
@@ -371,8 +383,20 @@ export default function FridgePage() {
                         </div>
                       </div>
                       <PctBar pct={pct} />
+                      {(r.cuisine || r.pairing) && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {r.cuisine && (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>
+                          )}
+                          {r.pairing && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
+                              <Icon icon="solar:wineglass-linear" width={12} />{r.pairing}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {r.ingredients.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-3">
+                        <div className="flex flex-wrap gap-1 mt-2">
                           {r.ingredients.map((ing) => (
                             <span
                               key={ing}
@@ -642,6 +666,38 @@ export default function FridgePage() {
                     </div>
                   ))}
                   <button onClick={() => setStepRows((prev) => [...prev, { label: "", unit: "min", value: 1 }])} className={`${btnSecondaryCls} self-start`}>+ 단계 추가</button>
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">요리 종류</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {CUISINES.map((c) => {
+                    const sel = formCuisine === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFormCuisine((prev) => (prev === c ? "" : c))}
+                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                      >{c}</button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PAIRINGS.map((p) => {
+                    const sel = formPairing === p;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setFormPairing((prev) => (prev === p ? "" : p))}
+                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                      >{p}</button>
+                    );
+                  })}
                 </div>
               </div>
               <div className="flex gap-2 mt-1">

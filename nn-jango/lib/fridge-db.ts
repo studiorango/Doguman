@@ -22,6 +22,8 @@ export type DbFridgeRecipe = {
   steps: FridgeStep[];
   total_time: number;
   youtube_url: string | null;
+  cuisine: string | null;
+  pairing: string | null;
   created_at: string;
 };
 
@@ -82,6 +84,8 @@ export async function saveRecipe(recipe: {
   steps: FridgeStep[];
   total_time: number;
   youtube_url?: string | null;
+  cuisine?: string | null;
+  pairing?: string | null;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인 필요');
@@ -101,6 +105,8 @@ export async function updateRecipe(id: string, patch: Partial<{
   steps: FridgeStep[];
   total_time: number;
   youtube_url: string | null;
+  cuisine: string | null;
+  pairing: string | null;
 }>) {
   const { error } = await supabase
     .from('fridge_recipes')
