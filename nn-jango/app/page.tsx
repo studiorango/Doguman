@@ -17,7 +17,10 @@ import {
   type FridgeIngredient,
 } from "@/lib/fridge-db";
 
-const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
+// 관리자 UID (비밀값 아님 — 마이그레이션 017에도 동일 값이 박혀 있음).
+// env가 있으면 그 값, 없으면 내장 기본값으로 폴백해 설정 누락에도 관리자 인식이 깨지지 않게 함.
+const ADMIN_USER_ID =
+  process.env.NEXT_PUBLIC_ADMIN_USER_ID ?? "bfdca7d2-aca3-4e0d-a12f-057dd412c27c";
 
 type Tab = "stock" | "recipe" | "search" | "timetable";
 type Recipe = {
