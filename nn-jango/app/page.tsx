@@ -269,7 +269,6 @@ export default function FridgePage() {
   const isAdmin = !!userId && userId === ADMIN_USER_ID;
   const stockNames = useMemo(() => new Set(stock), [stock]);
   const registeredUrls = useMemo(() => new Set(recipes.map((r) => r.youtubeUrl).filter(Boolean)), [recipes]);
-  const stockGroups = useMemo(() => groupIngredients(stock), [stock]);
 
   const addStock = async () => {
     const name = stockInput.trim();
@@ -303,7 +302,12 @@ export default function FridgePage() {
     }));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
   }, [recipes]);
-  const recipeIngredientGroups = useMemo(() => groupIngredients(recipeIngredientNames), [recipeIngredientNames]);
+  // 냉장고 탭에 보여줄 단일 재료 목록 = 레시피에 쓰인 재료 + 직접 추가한 재료
+  const fridgeListGroups = useMemo(() => {
+    const set = new Set<string>([...recipeIngredientNames, ...stock]);
+    const names = Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+    return groupIngredients(names);
+  }, [recipeIngredientNames, stock]);
 
   const resetExtraFields = () => {
     setFormCategory(""); setFormCarbs(""); setFormProtein(""); setFormFat("");
@@ -481,11 +485,10 @@ export default function FridgePage() {
         {tab === "stock" && (
           <div>
             <div className={cardCls}>
-              <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-3">재료 추가</p>
               <div className="flex gap-2">
                 <input
                   className={inputCls}
-                  placeholder={userId ? "재료명 입력 후 Enter" : "로그인 후 사용 가능"}
+                  placeholder={userId ? "재료 직접 추가 (Enter)" : "로그인 후 사용 가능"}
                   disabled={!userId}
                   value={stockInput}
                   onChange={(e) => setStockInput(e.target.value)}
@@ -493,15 +496,16 @@ export default function FridgePage() {
                 />
                 <button onClick={addStock} disabled={!userId} className={btnPrimaryCls}>추가</button>
               </div>
+              <p className="text-[12px] text-zinc-400 break-keep mt-2.5">가진 재료를 탭하세요. <span className="text-zinc-900 font-semibold">진한 건 있음</span>, 흐린 건 없음이에요.</p>
             </div>
-            {recipeIngredientGroups.length > 0 && (
-              <div className={cardCls}>
-                <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-1">레시피 재료 체크</p>
-                <p className="text-[12px] text-zinc-400 break-keep mb-3">레시피에 쓰인 재료예요. 가지고 있는 것을 체크하면 내 냉장고에 담겨요.</p>
-                <div className="flex flex-col gap-3">
-                  {recipeIngredientGroups.map((g) => (
+            <div className={cardCls}>
+              {fridgeListGroups.length === 0 ? (
+                <p className="text-[12px] text-zinc-400 break-keep">레시피를 등록하거나 위에서 재료를 추가하면 여기에 표시돼요.</p>
+              ) : (
+                <div className="flex flex-col gap-3.5">
+                  {fridgeListGroups.map((g) => (
                     <div key={g.label}>
-                      <p className="text-[11px] font-bold text-zinc-500 mb-1.5">{g.label}</p>
+                      <p className="text-[12px] font-bold text-zinc-500 mb-2">{g.label}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {g.names.map((name) => {
                           const has = stockNames.has(name);
@@ -510,40 +514,10 @@ export default function FridgePage() {
                               key={name}
                               onClick={() => toggleStockItem(name)}
                               disabled={!userId}
-                              className={`inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1 text-[12px] font-semibold border transition-colors disabled:opacity-40 ${has ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
-                            >
-                              <span className={`w-4 h-4 rounded-[5px] border flex items-center justify-center flex-shrink-0 ${has ? "bg-white border-white" : "border-zinc-300"}`}>
-                                {has && <Icon icon="solar:check-read-linear" className="text-zinc-900" width={11} />}
-                              </span>
-                              {name}
-                            </button>
+                              className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold border transition-colors disabled:opacity-40 ${has ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400"}`}
+                            >{name}</button>
                           );
                         })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className={cardCls}>
-              <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-3">냉장고 목록 ({stock.length})</p>
-              {stock.length === 0 ? (
-                <p className="text-[12px] text-zinc-400 break-keep">아직 등록된 재료가 없어요.</p>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {stockGroups.map((g) => (
-                    <div key={g.label}>
-                      <p className="text-[11px] font-bold text-zinc-500 mb-1.5">{g.label}</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {g.names.map((name) => (
-                          <div key={name} className="flex items-center gap-1 bg-zinc-100 border border-zinc-200 rounded-full pl-3 pr-1 py-1">
-                            <span className="text-[12px] font-semibold text-zinc-900">{name}</span>
-                            <button
-                              onClick={() => removeStock(name)}
-                              className="w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors"
-                            >✕</button>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   ))}
