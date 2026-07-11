@@ -169,7 +169,9 @@ export default function FridgePage() {
   const [formFat, setFormFat] = useState("");
   const [formRating, setFormRating] = useState(0);
   const [formKidFriendly, setFormKidFriendly] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null);
   const [recipeError, setRecipeError] = useState("");
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
@@ -238,6 +240,23 @@ export default function FridgePage() {
     await removeFridgeStockItem(name);
   };
 
+  // 냉장고 탭에서 레시피 재료를 체크 → 내 냉장고에 있음/없음 토글
+  const toggleStockItem = async (name: string) => {
+    if (!userId) return;
+    if (stockNames.has(name)) await removeStock(name);
+    else {
+      setStock((prev) => (prev.includes(name) ? prev : [...prev, name]));
+      await addFridgeStockItem(name);
+    }
+  };
+
+  // 등록된 레시피들에 쓰인 재료 이름(중복 제거)
+  const recipeIngredientNames = useMemo(() => {
+    const set = new Set<string>();
+    recipes.forEach((r) => r.ingredients.forEach((n) => n && set.add(n)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+  }, [recipes]);
+
   const resetExtraFields = () => {
     setFormCategory(""); setFormCarbs(""); setFormProtein(""); setFormFat("");
     setFormRating(0); setFormKidFriendly(false);
@@ -276,7 +295,8 @@ export default function FridgePage() {
   const closeForm = () => { setShowForm(false); setEditingId(null); setFocusedIngRow(null); setUnitPickerRow(null); };
 
   const submitForm = async () => {
-    if (!userId || !formName.trim()) return;
+    if (!userId || !formName.trim() || submitting) return; // 중복 클릭 방지
+    setSubmitting(true);
     const ingredientItems: FridgeIngredient[] = ingRows
       .filter((r) => r.name.trim())
       .map((r) => ({ name: r.name.trim(), amount: r.amount.trim(), unit: r.unit }));
@@ -298,16 +318,22 @@ export default function FridgePage() {
     const kidFriendly = formKidFriendly;
     const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
-    if (editingId) {
-      setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
-        : r));
-      await updateRecipe(editingId, payload);
-    } else {
-      const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+    try {
+      if (editingId) {
+        await updateRecipe(editingId, payload);
+        setRecipes((prev) => prev.map((r) => r.id === editingId
+          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+          : r));
+      } else {
+        const saved = await saveRecipe(payload);
+        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+      }
+      closeForm();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "저장에 실패했어요.");
+    } finally {
+      setSubmitting(false);
     }
-    closeForm();
   };
 
   const removeRecipe = async (id: string) => {
@@ -427,6 +453,30 @@ export default function FridgePage() {
                 <button onClick={addStock} disabled={!userId} className={btnPrimaryCls}>추가</button>
               </div>
             </div>
+            {recipeIngredientNames.length > 0 && (
+              <div className={cardCls}>
+                <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-1">레시피 재료 체크</p>
+                <p className="text-[12px] text-zinc-400 break-keep mb-3">레시피에 쓰인 재료예요. 가지고 있는 것을 체크하면 내 냉장고에 담겨요.</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {recipeIngredientNames.map((name) => {
+                    const has = stockNames.has(name);
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => toggleStockItem(name)}
+                        disabled={!userId}
+                        className={`inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 py-1 text-[12px] font-semibold border transition-colors disabled:opacity-40 ${has ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                      >
+                        <span className={`w-4 h-4 rounded-[5px] border flex items-center justify-center flex-shrink-0 ${has ? "bg-white border-white" : "border-zinc-300"}`}>
+                          {has && <Icon icon="solar:check-read-linear" className="text-zinc-900" width={11} />}
+                        </span>
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className={cardCls}>
               <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-3">냉장고 목록 ({stock.length})</p>
               {stock.length === 0 ? (
@@ -499,7 +549,7 @@ export default function FridgePage() {
                         {isAdmin && (
                           <div className="flex gap-2 flex-shrink-0">
                             <button onClick={() => openEditForm(r)} className={btnSecondaryCls}>수정</button>
-                            <button onClick={() => removeRecipe(r.id)} className={btnDestructiveCls}>삭제</button>
+                            <button onClick={() => setDeleteTarget(r)} className={btnDestructiveCls}>삭제</button>
                           </div>
                         )}
                       </div>
@@ -721,7 +771,7 @@ export default function FridgePage() {
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">재료 (냉장고에 등록된 재료가 아래에 자동으로 추천돼요)</p>
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => { setIngRows((prev) => [{ name: "", amount: "", unit: "" }, ...prev]); setFocusedIngRow(null); setUnitPickerRow(null); }}
+                    onClick={() => { setIngRows((prev) => [...prev, { name: "", amount: "", unit: "" }]); setFocusedIngRow(null); setUnitPickerRow(null); }}
                     className={`${btnSecondaryCls} self-start`}
                   >+ 재료 추가</button>
                   {ingRows.map((row, i) => {
@@ -934,10 +984,28 @@ export default function FridgePage() {
                 <span className="text-[13px] font-semibold text-zinc-700">아이도 먹을 수 있는 음식</span>
               </button>
               <div className="flex gap-2 mt-1">
-                <button onClick={submitForm} disabled={!formName.trim()} className={`${btnPrimaryCls} flex-1`}>{editingId ? "수정 저장" : "등록"}</button>
-                <button onClick={closeForm} className={`${btnSecondaryCls} px-5`}>취소</button>
+                <button onClick={submitForm} disabled={!formName.trim() || submitting} className={`${btnPrimaryCls} flex-1`}>{submitting ? "저장 중..." : editingId ? "수정 저장" : "등록"}</button>
+                <button onClick={closeForm} disabled={submitting} className={`${btnSecondaryCls} px-5`}>취소</button>
               </div>
             </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/48 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}
+        >
+          <div className="bg-white rounded-[16px] w-full max-w-[320px] p-5 shadow-xl">
+            <p className="text-[15px] font-bold text-zinc-900 mb-1">레시피를 삭제할까요?</p>
+            <p className="text-[13px] text-zinc-500 break-keep mb-4">&ldquo;{deleteTarget.name}&rdquo; 레시피가 삭제돼요. 되돌릴 수 없어요.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { const t = deleteTarget; setDeleteTarget(null); if (t) removeRecipe(t.id); }}
+                className={`${btnPrimaryCls} flex-1`}
+              >예, 삭제</button>
+              <button onClick={() => setDeleteTarget(null)} className={`${btnSecondaryCls} px-5`}>취소</button>
             </div>
           </div>
         </div>
