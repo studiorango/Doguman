@@ -232,6 +232,8 @@ export default function FridgePage() {
   const [recipeError, setRecipeError] = useState("");
   const [cuisineFilter, setCuisineFilter] = useState("전체");
   const [courseView, setCourseView] = useState(false);
+  const [builderSystem, setBuilderSystem] = useState<"korean" | "western">("korean");
+  const [courseSelection, setCourseSelection] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
@@ -296,20 +298,19 @@ export default function FridgePage() {
     () => (cuisineFilter === "전체" ? recipes : recipes.filter((r) => r.cuisine === cuisineFilter)),
     [recipes, cuisineFilter]
   );
-  const courseGroups = useMemo(() => {
-    const roleOrder = ["전채", "메인", "국·탕", "사이드", "반찬", "밥·면", "디저트", "후식"];
-    const map = new Map<string, Recipe[]>();
-    visibleRecipes.forEach((r) => {
-      const k = r.course || "미지정";
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(r);
-    });
-    const weight = (k: string) => {
-      const i = roleOrder.indexOf(k);
-      return i === -1 ? (k === "미지정" ? 999 : 500) : i;
-    };
-    return Array.from(map.keys()).sort((a, b) => weight(a) - weight(b)).map((k) => ({ course: k, recipes: map.get(k)! }));
-  }, [visibleRecipes]);
+  // 코스 빌더: 선택된 방식의 자리(role)들, 각 자리에 담긴 레시피
+  const builderRoles = COURSE_SYSTEMS.find((s) => s.key === builderSystem)?.roles ?? [];
+  const courseRecipes = builderRoles
+    .map((role) => recipes.find((r) => r.id === courseSelection[role]))
+    .filter((r): r is Recipe => !!r);
+  const courseTotalTime = courseRecipes.reduce((sum, r) => sum + r.totalTime, 0);
+  const courseMissing = (() => {
+    const need = new Set<string>();
+    courseRecipes.forEach((r) => recipeItems(r).forEach((it) => { if (!itemAvailable(it, stockNames)) need.add(it.name); }));
+    return need.size;
+  })();
+  const pickCourse = (role: string, id: string) =>
+    setCourseSelection((prev) => ({ ...prev, [role]: prev[role] === id ? "" : id }));
 
   const addStock = async () => {
     const name = stockInput.trim();
@@ -716,23 +717,77 @@ export default function FridgePage() {
                     ))}
                   </div>
                   <button onClick={() => setCourseView((v) => !v)} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors flex-shrink-0 ${courseView ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}>
-                    <Icon icon="solar:plate-linear" width={13} />코스별
+                    <Icon icon="solar:plate-linear" width={13} />코스 짜기
                   </button>
                 </div>
 
-                {visibleRecipes.length === 0 ? (
-                  <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">이 분류의 레시피가 없어요.</div>
-                ) : courseView ? (
-                  <div className="flex flex-col gap-5">
-                    {courseGroups.map((g) => (
-                      <div key={g.course}>
-                        <p className="text-[13px] font-extrabold text-zinc-900 mb-2">{g.course}</p>
-                        <div className="flex flex-col gap-3">
-                          {g.recipes.map(renderRecipeCard)}
+                {courseView ? (
+                  <div>
+                    <div className="flex gap-1 bg-zinc-100 border border-zinc-200 rounded-[10px] p-1 w-fit mb-4">
+                      {COURSE_SYSTEMS.map((s) => (
+                        <button key={s.key} onClick={() => { setBuilderSystem(s.key as "korean" | "western"); setCourseSelection({}); }}
+                          className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${builderSystem === s.key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}>{s.label} 코스</button>
+                      ))}
+                    </div>
+
+                    <div className={cardCls}>
+                      <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-2">내 코스</p>
+                      {courseRecipes.length === 0 ? (
+                        <p className="text-[12px] text-zinc-400 break-keep">아래 자리별로 레시피를 하나씩 골라 담아보세요.</p>
+                      ) : (
+                        <div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {courseRecipes.map((r) => (
+                              <span key={r.id} className="text-[12px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white">{r.name}</span>
+                            ))}
+                          </div>
+                          <p className="text-[12px] text-zinc-500 mt-2.5">
+                            {courseRecipes.length}가지 · 총 <span className="font-bold text-zinc-900">{courseTotalTime}분</span> · {courseMissing === 0 ? <span className="font-bold text-zinc-900">재료 다 있어요</span> : <>부족 재료 <span className="font-bold text-zinc-900">{courseMissing}개</span></>}
+                          </p>
                         </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      {builderRoles.map((role) => {
+                        const candidates = visibleRecipes.filter((r) => r.course === role);
+                        const selId = courseSelection[role] || "";
+                        return (
+                          <div key={role}>
+                            <p className="text-[13px] font-extrabold text-zinc-900 mb-2">{role}</p>
+                            {candidates.length === 0 ? (
+                              <p className="text-[12px] text-zinc-400 break-keep pl-0.5">이 자리에 넣을 레시피가 없어요.</p>
+                            ) : (
+                              <div className="flex flex-col gap-2">
+                                {candidates.map((r) => {
+                                  const cItems = recipeItems(r);
+                                  const cMissing = cItems.filter((it) => !itemAvailable(it, stockNames)).length;
+                                  const sel = selId === r.id;
+                                  return (
+                                    <button key={r.id} onClick={() => pickCourse(role, r.id)}
+                                      className={`w-full text-left rounded-[12px] border p-3 transition-colors ${sel ? "bg-zinc-900 border-zinc-900" : "bg-white border-zinc-200 hover:border-zinc-400"}`}>
+                                      <div className="flex items-center gap-2">
+                                        <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${sel ? "bg-white" : "border-2 border-zinc-300"}`}>
+                                          {sel && <Icon icon="solar:check-read-linear" width={12} className="text-zinc-900" />}
+                                        </span>
+                                        <span className={`text-[13px] font-bold ${sel ? "text-white" : "text-zinc-900"}`}>{r.name}</span>
+                                        {r.cuisine && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${sel ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-600"}`}>{r.cuisine}</span>}
+                                        <span className={`ml-auto text-[11px] font-semibold flex-shrink-0 ${sel ? "text-white/70" : "text-zinc-400"}`}>
+                                          {r.totalTime > 0 ? `${r.totalTime}분` : ""}{cMissing > 0 ? `${r.totalTime > 0 ? " · " : ""}${cMissing}개 부족` : ""}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
+                ) : visibleRecipes.length === 0 ? (
+                  <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">이 분류의 레시피가 없어요.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {visibleRecipes.map(renderRecipeCard)}
