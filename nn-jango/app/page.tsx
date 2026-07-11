@@ -689,11 +689,12 @@ export default function FridgePage() {
       </main>
 
       {showForm && (
-        <div
-          className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-black/48 p-4 overflow-y-auto"
-          onClick={(e) => { if (e.target === e.currentTarget) closeForm(); }}
-        >
-          <div className="bg-white rounded-[16px] w-full max-w-[480px] my-8 p-5 shadow-xl">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/48">
+          <div
+            className="flex min-h-full items-start sm:items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) closeForm(); }}
+          >
+            <div className="bg-white rounded-[16px] w-full max-w-[480px] my-8 p-5 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[15px] font-bold text-zinc-900">{editingId ? "레시피 수정" : "새 레시피"}</p>
               <button onClick={closeForm} className="text-zinc-400 hover:text-zinc-900 text-[18px] leading-none">✕</button>
@@ -936,6 +937,7 @@ export default function FridgePage() {
                 <button onClick={submitForm} disabled={!formName.trim()} className={`${btnPrimaryCls} flex-1`}>{editingId ? "수정 저장" : "등록"}</button>
                 <button onClick={closeForm} className={`${btnSecondaryCls} px-5`}>취소</button>
               </div>
+            </div>
             </div>
           </div>
         </div>
