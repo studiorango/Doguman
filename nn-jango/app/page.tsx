@@ -170,11 +170,6 @@ function formatDur(dur: number) {
   if (sec % 60 === 0) return `${sec / 60}분`;
   return `${Math.floor(sec / 60)}분 ${sec % 60}초`;
 }
-function matchInfo(recipe: Recipe, stockNames: Set<string>) {
-  const items = recipeItems(recipe);
-  const missing = items.filter((it) => !itemAvailable(it, stockNames)).length;
-  return { total: items.length, missing };
-}
 
 function StarRating({ value, onChange, size = 28 }: { value: number; onChange?: (v: number) => void; size?: number }) {
   const readOnly = !onChange;
@@ -500,7 +495,9 @@ export default function FridgePage() {
   ];
 
   const renderRecipeCard = (r: Recipe) => {
-    const { total, missing } = matchInfo(r, stockNames);
+    const items = recipeItems(r);
+    const total = items.length;
+    const missing = items.filter((it) => !itemAvailable(it, stockNames)).length;
     const expanded = expandedId === r.id;
     const canExpand = r.steps.length > 0;
     return (
@@ -511,7 +508,10 @@ export default function FridgePage() {
       >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {r.cuisine && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-white flex-shrink-0">{r.cuisine}</span>
+              )}
               <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
               {canExpand && (
                 <Icon icon="solar:alt-arrow-down-linear" width={14} className={`text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -539,18 +539,20 @@ export default function FridgePage() {
         </div>
 
         {total > 0 && (
-          missing === 0 ? (
-            <span className="inline-flex items-center gap-1 text-[12px] font-bold text-zinc-900">
-              <Icon icon="solar:check-circle-bold" width={15} />재료 다 있어요
+          <div className="flex items-center gap-2.5 mt-1">
+            <div className="flex gap-0.5 flex-1">
+              {items.map((it, i) => (
+                <div key={i} className="h-2 flex-1 rounded-[2px]" style={{ background: itemAvailable(it, stockNames) ? "#18181B" : "#E4E4E7" }} />
+              ))}
+            </div>
+            <span className="text-[11px] font-bold flex-shrink-0" style={{ color: missing === 0 ? "#18181B" : "#71717A" }}>
+              {missing === 0 ? "다 있어요" : `${missing}개 부족`}
             </span>
-          ) : (
-            <span className="text-[12px] text-zinc-500">재료 <span className="text-[15px] font-extrabold text-zinc-900">{missing}개</span> 부족<span className="text-zinc-300"> · {total}개 중</span></span>
-          )
+          </div>
         )}
 
-        {(r.cuisine || r.category || r.course || r.pairings.length > 0 || r.kidFriendly) && (
+        {(r.category || r.course || r.pairings.length > 0 || r.kidFriendly) && (
           <div className="flex flex-wrap gap-1.5 mt-3">
-            {r.cuisine && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>}
             {r.course && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:plate-linear" width={12} />{r.course}</span>}
             {r.category && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>}
             {r.pairings.map((p) => (
@@ -568,9 +570,9 @@ export default function FridgePage() {
           </p>
         )}
 
-        {r.ingredients.length > 0 && (
+        {items.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {recipeItems(r).map((it, idx) => {
+            {items.map((it, idx) => {
               const qty = [it.amount, it.unit].filter(Boolean).join(" ");
               const label = it.alts.length ? `${it.name} 또는 ${it.alts.join(", ")}` : it.name;
               return (
@@ -620,18 +622,18 @@ export default function FridgePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-7 px-3">
+        <div className="grid grid-cols-2 gap-4 mb-7 px-10">
           {tabDef.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className="aspect-square rounded-[18px] border-2 transition-all duration-150 flex items-center justify-center"
+              className="aspect-square rounded-[16px] border-2 transition-all duration-150 flex items-center justify-center"
               style={{
                 background: tab === t.key ? "#18181B" : "#fff",
                 borderColor: tab === t.key ? "#18181B" : "#E4E4E7",
               }}
             >
-              <span className="text-[19px] font-extrabold tracking-tight break-keep" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</span>
+              <span className="text-[16px] font-extrabold tracking-tight break-keep" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</span>
             </button>
           ))}
         </div>
