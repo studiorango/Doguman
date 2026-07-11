@@ -29,6 +29,7 @@ export type DbFridgeRecipe = {
   cuisine: string | null;
   pairing: string | null;
   category: string | null;
+  course: string | null;
   carbs: number | null;
   protein: number | null;
   fat: number | null;
@@ -117,6 +118,7 @@ export async function saveRecipe(recipe: {
   cuisine?: string | null;
   pairing?: string | null;
   category?: string | null;
+  course?: string | null;
   carbs?: number | null;
   protein?: number | null;
   fat?: number | null;
@@ -146,6 +148,7 @@ export async function updateRecipe(id: string, patch: Partial<{
   cuisine: string | null;
   pairing: string | null;
   category: string | null;
+  course: string | null;
   carbs: number | null;
   protein: number | null;
   fat: number | null;

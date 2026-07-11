@@ -36,6 +36,7 @@ type Recipe = {
   cuisine: string;
   pairings: string[];
   category: string;
+  course: string;
   carbs: number | null;
   protein: number | null;
   fat: number | null;
@@ -62,6 +63,11 @@ const CUISINES = ["한식", "중식", "일식", "양식", "동남아식", "인�
 const PAIRINGS = ["소주", "맥주", "막걸리", "청주·사케", "레드와인", "화이트와인", "하이볼", "위스키", "고량주", "논알콜"];
 const UNITS = ["개", "마리", "g", "kg", "ml", "L", "큰술", "작은술", "컵", "조각", "장", "줌", "꼬집", "대", "쪽", "톨", "봉", "캔", "병", "박스", "약간"];
 const CATEGORIES = ["밥요리", "면요리", "빵·베이커리", "국물요리", "고기요리", "생선·해산물", "볶음·구이", "튀김", "찜·조림", "샐러드·채소", "죽·스프", "반찬", "디저트", "음료", "기타"];
+// 코스 구성 방식별 단계 (레시피가 한 끼 안에서 어느 자리인지)
+const COURSE_SYSTEMS: { key: string; label: string; roles: string[] }[] = [
+  { key: "korean", label: "한식", roles: ["메인", "국·탕", "반찬", "밥·면", "후식"] },
+  { key: "western", label: "양식", roles: ["전채", "메인", "사이드", "디저트"] },
+];
 
 // 재료 분류 사전 (냉장고 목록·레시피 재료 체크를 종류별로 묶는 데 사용).
 // 정확히 일치하는 이름만 분류하고, 없는 재료는 "기타"로.
@@ -158,22 +164,16 @@ function stepsToStepRows(steps: FridgeStep[]): StepRow[] {
   });
 }
 
-function matchPct(recipe: Recipe, stockNames: Set<string>) {
-  const items = recipeItems(recipe);
-  if (!items.length) return 0;
-  const matched = items.filter((it) => itemAvailable(it, stockNames)).length;
-  return Math.round((matched / items.length) * 100);
+function formatDur(dur: number) {
+  const sec = Math.round(dur * 60);
+  if (sec < 60) return `${sec}초`;
+  if (sec % 60 === 0) return `${sec / 60}분`;
+  return `${Math.floor(sec / 60)}분 ${sec % 60}초`;
 }
-
-function PctBar({ pct }: { pct: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[11px] font-bold text-zinc-900 flex-shrink-0 min-w-[58px]">{pct}% 준비됨</span>
-      <div className="flex-1 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
-        <div className="h-full bg-zinc-900 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
+function matchInfo(recipe: Recipe, stockNames: Set<string>) {
+  const items = recipeItems(recipe);
+  const missing = items.filter((it) => !itemAvailable(it, stockNames)).length;
+  return { total: items.length, missing };
 }
 
 function StarRating({ value, onChange, size = 28 }: { value: number; onChange?: (v: number) => void; size?: number }) {
@@ -224,6 +224,8 @@ export default function FridgePage() {
   const [formCuisine, setFormCuisine] = useState("");
   const [formPairings, setFormPairings] = useState<string[]>([]);
   const [formCategory, setFormCategory] = useState("");
+  const [formCourse, setFormCourse] = useState("");
+  const [formCourseSystem, setFormCourseSystem] = useState<"korean" | "western" | "custom">("korean");
   const [formCarbs, setFormCarbs] = useState("");
   const [formProtein, setFormProtein] = useState("");
   const [formFat, setFormFat] = useState("");
@@ -233,6 +235,9 @@ export default function FridgePage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Recipe | null>(null);
   const [recipeError, setRecipeError] = useState("");
+  const [cuisineFilter, setCuisineFilter] = useState("전체");
+  const [courseView, setCourseView] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
   const [focusedIngRow, setFocusedIngRow] = useState<number | null>(null);
@@ -272,7 +277,7 @@ export default function FridgePage() {
         steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
         link: r.link ?? "",
         cuisine: r.cuisine ?? "", pairings: r.pairing ? r.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
+        category: r.category ?? "", course: r.course ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
         rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
       })));
     } catch (e) {
@@ -285,6 +290,31 @@ export default function FridgePage() {
   const isAdmin = !!userId && userId === ADMIN_USER_ID;
   const stockNames = useMemo(() => new Set(stock), [stock]);
   const registeredUrls = useMemo(() => new Set(recipes.map((r) => r.youtubeUrl).filter(Boolean)), [recipes]);
+
+  // 레시피 탭: 요리 종류 필터(#3) + 코스별 보기(#4)
+  const availableCuisines = useMemo(() => {
+    const set = new Set<string>();
+    recipes.forEach((r) => r.cuisine && set.add(r.cuisine));
+    return CUISINES.filter((c) => set.has(c));
+  }, [recipes]);
+  const visibleRecipes = useMemo(
+    () => (cuisineFilter === "전체" ? recipes : recipes.filter((r) => r.cuisine === cuisineFilter)),
+    [recipes, cuisineFilter]
+  );
+  const courseGroups = useMemo(() => {
+    const roleOrder = ["전채", "메인", "국·탕", "사이드", "반찬", "밥·면", "디저트", "후식"];
+    const map = new Map<string, Recipe[]>();
+    visibleRecipes.forEach((r) => {
+      const k = r.course || "미지정";
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push(r);
+    });
+    const weight = (k: string) => {
+      const i = roleOrder.indexOf(k);
+      return i === -1 ? (k === "미지정" ? 999 : 500) : i;
+    };
+    return Array.from(map.keys()).sort((a, b) => weight(a) - weight(b)).map((k) => ({ course: k, recipes: map.get(k)! }));
+  }, [visibleRecipes]);
 
   const addStock = async () => {
     const name = stockInput.trim();
@@ -326,8 +356,16 @@ export default function FridgePage() {
   }, [recipeIngredientNames, stock]);
 
   const resetExtraFields = () => {
-    setFormCategory(""); setFormCarbs(""); setFormProtein(""); setFormFat("");
+    setFormCategory(""); setFormCourse(""); setFormCourseSystem("korean");
+    setFormCarbs(""); setFormProtein(""); setFormFat("");
     setFormRating(0); setFormKidFriendly(false);
+  };
+  // 저장된 course 값이 어느 방식(한식/양식)에 속하는지 추정, 아니면 custom
+  const courseSystemOf = (course: string): "korean" | "western" | "custom" => {
+    if (!course) return "korean";
+    if (COURSE_SYSTEMS[0].roles.includes(course)) return "korean";
+    if (COURSE_SYSTEMS[1].roles.includes(course)) return "western";
+    return "custom";
   };
   const numToStr = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
@@ -345,6 +383,7 @@ export default function FridgePage() {
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairings(r.pairings ?? []);
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
+    setFormCourse(r.course || ""); setFormCourseSystem(courseSystemOf(r.course || ""));
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
@@ -381,23 +420,24 @@ export default function FridgePage() {
     const cuisine = formCuisine || null;
     const pairing = formPairings.length ? formPairings.join(",") : null;
     const category = formCategory || null;
+    const course = formCourse.trim() || null;
     const parseNum = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const carbs = parseNum(formCarbs);
     const protein = parseNum(formProtein);
     const fat = parseNum(formFat);
     const rating = formRating > 0 ? formRating : null;
     const kidFriendly = formKidFriendly;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, course, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
     try {
       if (editingId) {
         await updateRecipe(editingId, payload);
         setRecipes((prev) => prev.map((r) => r.id === editingId
-          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", course: course ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
           : r));
       } else {
         const saved = await saveRecipe(payload);
-        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", course: saved.course ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
       }
       closeForm();
     } catch (e) {
@@ -459,6 +499,105 @@ export default function FridgePage() {
     { key: "timetable", label: "타임테이블", desc: "동시 완성 계획" },
   ];
 
+  const renderRecipeCard = (r: Recipe) => {
+    const { total, missing } = matchInfo(r, stockNames);
+    const expanded = expandedId === r.id;
+    const canExpand = r.steps.length > 0;
+    return (
+      <div
+        key={r.id}
+        onClick={() => canExpand && setExpandedId(expanded ? null : r.id)}
+        className={`${cardCls} ${canExpand ? "cursor-pointer" : ""}`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
+              {canExpand && (
+                <Icon icon="solar:alt-arrow-down-linear" width={14} className={`text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              )}
+            </div>
+            <p className="text-[11px] text-zinc-400 mt-0.5">
+              {r.source ? `${r.source} · ` : ""}{r.totalTime > 0 ? `${r.totalTime}분` : "시간 미정"}
+            </p>
+            {r.rating > 0 && <div className="mt-1"><StarRating value={r.rating} size={14} /></div>}
+            <div className="flex gap-2">
+              {r.youtubeUrl && (
+                <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">영상 보기</a>
+              )}
+              {r.link && (
+                <a href={r.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">링크 열기</a>
+              )}
+            </div>
+          </div>
+          {isAdmin && (
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); openEditForm(r); }} className={btnSecondaryCls}>수정</button>
+              <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }} className={btnDestructiveCls}>삭제</button>
+            </div>
+          )}
+        </div>
+
+        {total > 0 && (
+          missing === 0 ? (
+            <span className="inline-flex items-center gap-1 text-[12px] font-bold text-zinc-900">
+              <Icon icon="solar:check-circle-bold" width={15} />재료 다 있어요
+            </span>
+          ) : (
+            <span className="text-[12px] text-zinc-500">재료 <span className="text-[15px] font-extrabold text-zinc-900">{missing}개</span> 부족<span className="text-zinc-300"> · {total}개 중</span></span>
+          )
+        )}
+
+        {(r.cuisine || r.category || r.course || r.pairings.length > 0 || r.kidFriendly) && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {r.cuisine && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>}
+            {r.course && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:plate-linear" width={12} />{r.course}</span>}
+            {r.category && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>}
+            {r.pairings.map((p) => (
+              <span key={p} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:wineglass-linear" width={12} />{p}</span>
+            ))}
+            {r.kidFriendly && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white"><Icon icon="solar:smile-circle-linear" width={12} />아이 가능</span>
+            )}
+          </div>
+        )}
+
+        {(r.carbs !== null || r.protein !== null || r.fat !== null) && (
+          <p className="text-[11px] text-zinc-400 mt-2">
+            {[r.carbs !== null && `탄 ${r.carbs}g`, r.protein !== null && `단 ${r.protein}g`, r.fat !== null && `지 ${r.fat}g`].filter(Boolean).join(" · ")}
+          </p>
+        )}
+
+        {r.ingredients.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {recipeItems(r).map((it, idx) => {
+              const qty = [it.amount, it.unit].filter(Boolean).join(" ");
+              const label = it.alts.length ? `${it.name} 또는 ${it.alts.join(", ")}` : it.name;
+              return (
+                <span key={`${it.name}-${idx}`} className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  style={itemAvailable(it, stockNames) ? { background: "#18181B", color: "#fff" } : { background: "#F4F4F5", color: "#A1A1AA" }}>
+                  {label}{qty ? ` ${qty}` : ""}</span>
+              );
+            })}
+          </div>
+        )}
+
+        {expanded && canExpand && (
+          <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-col gap-2.5">
+            <p className="text-[11px] font-bold text-zinc-400 tracking-wider">조리순서</p>
+            {r.steps.map((s, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-px">{i + 1}</span>
+                <p className="text-[13px] text-zinc-800 flex-1 break-keep">{s.label}</p>
+                <span className="text-[11px] text-zinc-400 flex-shrink-0 mt-0.5">{formatDur(s.dur)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-[100dvh] bg-zinc-50">
       <header
@@ -481,19 +620,18 @@ export default function FridgePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-7 px-3">
           {tabDef.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className="text-center rounded-[14px] py-5 px-3 border-2 transition-all duration-150"
+              className="aspect-square rounded-[18px] border-2 transition-all duration-150 flex items-center justify-center"
               style={{
                 background: tab === t.key ? "#18181B" : "#fff",
                 borderColor: tab === t.key ? "#18181B" : "#E4E4E7",
               }}
             >
-              <div className="text-[14px] font-bold tracking-tight" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</div>
-              <div className="text-[11px] mt-1" style={{ color: tab === t.key ? "rgba(255,255,255,0.6)" : "#A1A1AA" }}>{t.desc}</div>
+              <span className="text-[19px] font-extrabold tracking-tight break-keep" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</span>
             </button>
           ))}
         </div>
@@ -567,86 +705,37 @@ export default function FridgePage() {
             ) : recipes.length === 0 ? (
               <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">아직 등록된 레시피가 없어요.</div>
             ) : (
-              <div className="flex flex-col gap-3">
-                {recipes.map((r) => {
-                  const pct = matchPct(r, stockNames);
-                  return (
-                    <div key={r.id} className={cardCls}>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
-                          <p className="text-[11px] text-zinc-400 mt-0.5">
-                            {r.source ? `${r.source} · ` : ""}{r.totalTime > 0 ? `${r.totalTime}분` : "시간 미정"}
-                          </p>
-                          {r.rating > 0 && (
-                            <div className="mt-1"><StarRating value={r.rating} size={14} /></div>
-                          )}
-                          <div className="flex gap-2">
-                            {r.youtubeUrl && (
-                              <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
-                                영상 보기
-                              </a>
-                            )}
-                            {r.link && (
-                              <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">
-                                링크 열기
-                              </a>
-                            )}
-                          </div>
+              <div>
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <div className="flex gap-1.5 flex-wrap flex-1">
+                    <button onClick={() => setCuisineFilter("전체")} className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${cuisineFilter === "전체" ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}>전체</button>
+                    {availableCuisines.map((c) => (
+                      <button key={c} onClick={() => setCuisineFilter(c)} className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${cuisineFilter === c ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}>{c}</button>
+                    ))}
+                  </div>
+                  <button onClick={() => setCourseView((v) => !v)} className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors flex-shrink-0 ${courseView ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}>
+                    <Icon icon="solar:plate-linear" width={13} />코스별
+                  </button>
+                </div>
+
+                {visibleRecipes.length === 0 ? (
+                  <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">이 분류의 레시피가 없어요.</div>
+                ) : courseView ? (
+                  <div className="flex flex-col gap-5">
+                    {courseGroups.map((g) => (
+                      <div key={g.course}>
+                        <p className="text-[13px] font-extrabold text-zinc-900 mb-2">{g.course}</p>
+                        <div className="flex flex-col gap-3">
+                          {g.recipes.map(renderRecipeCard)}
                         </div>
-                        {isAdmin && (
-                          <div className="flex gap-2 flex-shrink-0">
-                            <button onClick={() => openEditForm(r)} className={btnSecondaryCls}>수정</button>
-                            <button onClick={() => setDeleteTarget(r)} className={btnDestructiveCls}>삭제</button>
-                          </div>
-                        )}
                       </div>
-                      <PctBar pct={pct} />
-                      {(r.cuisine || r.category || r.pairings.length > 0 || r.kidFriendly) && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {r.cuisine && (
-                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>
-                          )}
-                          {r.category && (
-                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>
-                          )}
-                          {r.pairings.map((p) => (
-                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
-                              <Icon icon="solar:wineglass-linear" width={12} />{p}
-                            </span>
-                          ))}
-                          {r.kidFriendly && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white">
-                              <Icon icon="solar:smile-circle-linear" width={12} />아이 가능
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {(r.carbs !== null || r.protein !== null || r.fat !== null) && (
-                        <p className="text-[11px] text-zinc-400 mt-2">
-                          {[r.carbs !== null && `탄 ${r.carbs}g`, r.protein !== null && `단 ${r.protein}g`, r.fat !== null && `지 ${r.fat}g`].filter(Boolean).join(" · ")}
-                        </p>
-                      )}
-                      {r.ingredients.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {recipeItems(r).map((it, idx) => {
-                            const qty = [it.amount, it.unit].filter(Boolean).join(" ");
-                            const label = it.alts.length ? `${it.name} 또는 ${it.alts.join(", ")}` : it.name;
-                            return (
-                              <span
-                                key={`${it.name}-${idx}`}
-                                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                                style={itemAvailable(it, stockNames)
-                                  ? { background: "#18181B", color: "#fff" }
-                                  : { background: "#F4F4F5", color: "#A1A1AA" }}
-                              >{label}{qty ? ` ${qty}` : ""}</span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {visibleRecipes.map(renderRecipeCard)}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1011,6 +1100,36 @@ export default function FridgePage() {
                     );
                   })}
                 </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">코스 (한 끼에서의 자리 · 선택)</p>
+                <div className="flex gap-1 bg-zinc-100 border border-zinc-200 rounded-[10px] p-1 mb-2 w-fit">
+                  {([["korean","한식"],["western","양식"],["custom","직접입력"]] as const).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setFormCourseSystem(key); setFormCourse(""); }}
+                      className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${formCourseSystem === key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}
+                    >{label}</button>
+                  ))}
+                </div>
+                {formCourseSystem === "custom" ? (
+                  <input className={inputCls} placeholder="예: 해장, 야식, 브런치" value={formCourse} onChange={(e) => setFormCourse(e.target.value)} />
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(COURSE_SYSTEMS.find((s) => s.key === formCourseSystem)?.roles ?? []).map((role) => {
+                      const sel = formCourse === role;
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setFormCourse((prev) => (prev === role ? "" : role))}
+                          className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                        >{role}</button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술 (여러 개 선택 가능)</p>
