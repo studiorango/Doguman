@@ -33,8 +33,12 @@ export type DbFridgeRecipe = {
   fat: number | null;
   rating: number | null;
   kid_friendly: boolean;
+  is_public: boolean;
   created_at: string;
 };
+
+// 공개 열람 API(/api/public-recipes)가 반환하는 안전한 필드만 (user_id 제외)
+export type PublicRecipe = Omit<DbFridgeRecipe, "user_id" | "is_public">;
 
 export type DbFridgeStockItem = {
   id: string;
@@ -103,6 +107,7 @@ export async function saveRecipe(recipe: {
   fat?: number | null;
   rating?: number | null;
   kid_friendly?: boolean;
+  is_public?: boolean;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('로그인 필요');
@@ -132,6 +137,7 @@ export async function updateRecipe(id: string, patch: Partial<{
   fat: number | null;
   rating: number | null;
   kid_friendly: boolean;
+  is_public: boolean;
 }>) {
   const { error } = await supabase
     .from('fridge_recipes')
@@ -146,4 +152,23 @@ export async function deleteRecipe(id: string) {
     .delete()
     .eq('id', id);
   if (error) throw error;
+}
+
+// =====================
+// 공개 레시피 둘러보기 (rate-limit + 로그인 게이트가 걸린 서버 API 경유)
+// =====================
+
+export type PublicRecipesResult = {
+  recipes: PublicRecipe[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+};
+
+export async function fetchPublicRecipes(page = 0): Promise<PublicRecipesResult> {
+  const res = await fetch(`/api/public-recipes?page=${page}`, { cache: "no-store" });
+  if (res.status === 401) throw new Error("로그인이 필요해요.");
+  if (res.status === 429) throw new Error("요청이 너무 많아요. 잠시 후 다시 시도해주세요.");
+  if (!res.ok) throw new Error("불러오기에 실패했어요.");
+  return res.json();
 }
