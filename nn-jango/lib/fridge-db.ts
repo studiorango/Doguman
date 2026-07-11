@@ -83,9 +83,16 @@ export async function removeFridgeStockItem(name: string) {
 // 읽기: 로그인 + rate limit + service_role이 걸린 서버 API로만 (직접 테이블 조회 X = 크롤링 방어)
 // 관리자 레시피 전체를 페이지 끝까지 모아 반환.
 export async function fetchAllRecipes(): Promise<RecipeView[]> {
+  // 앱 세션은 localStorage 기반이므로, 서버 API엔 access token을 헤더로 실어 보낸다.
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("로그인이 필요해요.");
   const all: RecipeView[] = [];
   for (let page = 0; page < 40; page++) { // 안전 상한
-    const res = await fetch(`/api/public-recipes?page=${page}`, { cache: "no-store" });
+    const res = await fetch(`/api/public-recipes?page=${page}`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     if (res.status === 401) throw new Error("로그인이 필요해요.");
     if (res.status === 429) throw new Error("요청이 너무 많아요. 잠시 후 다시 시도해주세요.");
     if (!res.ok) throw new Error("불러오기에 실패했어요.");

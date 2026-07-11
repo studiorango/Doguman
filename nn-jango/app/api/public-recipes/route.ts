@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkPublicReadLimit } from "@/lib/ratelimit";
 
@@ -10,10 +9,17 @@ const PUBLIC_FIELDS =
   "id, name, source, link, youtube_url, ingredients, ingredient_items, steps, total_time, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly, created_at";
 
 export async function GET(request: Request) {
-  // 1) 로그인 필수 (#4) — 쿠키 세션 검증
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const admin = createAdminClient();
+
+  // 1) 로그인 필수 (#4) — 클라이언트가 보낸 Bearer 토큰(JWT)을 검증
+  //    (앱 세션은 localStorage 기반이라 쿠키가 아니라 Authorization 헤더로 받는다)
+  const authHeader = request.headers.get("authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  if (!token) {
+    return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
+  }
+  const { data: { user }, error: authError } = await admin.auth.getUser(token);
+  if (authError || !user) {
     return NextResponse.json({ error: "로그인이 필요해요." }, { status: 401 });
   }
 
@@ -33,7 +39,6 @@ export async function GET(request: Request) {
   const to = from + PAGE_SIZE - 1;
 
   // 4) service_role로 관리자 레시피 전체 조회 (직접 테이블 노출 없이 API로만 = #1)
-  const admin = createAdminClient();
   const { data, error } = await admin
     .from("fridge_recipes")
     .select(PUBLIC_FIELDS)
