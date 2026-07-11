@@ -34,7 +34,7 @@ type Recipe = {
   youtubeUrl: string;
   link: string;
   cuisine: string;
-  pairing: string;
+  pairings: string[];
   category: string;
   carbs: number | null;
   protein: number | null;
@@ -173,7 +173,7 @@ export default function FridgePage() {
   const [formYoutubeUrl, setFormYoutubeUrl] = useState("");
   const [formLink, setFormLink] = useState("");
   const [formCuisine, setFormCuisine] = useState("");
-  const [formPairing, setFormPairing] = useState("");
+  const [formPairings, setFormPairings] = useState<string[]>([]);
   const [formCategory, setFormCategory] = useState("");
   const [formCarbs, setFormCarbs] = useState("");
   const [formProtein, setFormProtein] = useState("");
@@ -222,7 +222,7 @@ export default function FridgePage() {
         ingredientItems: r.ingredient_items ?? [],
         steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
         link: r.link ?? "",
-        cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
+        cuisine: r.cuisine ?? "", pairings: r.pairing ? r.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [],
         category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
         rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
       })));
@@ -280,7 +280,7 @@ export default function FridgePage() {
   const openNewForm = () => {
     setEditingId(null);
     setFormName(""); setFormSource(""); setFormYoutubeUrl(""); setFormLink("");
-    setFormCuisine(""); setFormPairing("");
+    setFormCuisine(""); setFormPairings([]);
     resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
@@ -289,7 +289,7 @@ export default function FridgePage() {
   const openEditForm = (r: Recipe) => {
     setEditingId(r.id);
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
-    setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
+    setFormCuisine(r.cuisine || ""); setFormPairings(r.pairings ?? []);
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
@@ -300,7 +300,7 @@ export default function FridgePage() {
   const openFormFromVideo = (v: Video, channelTitle: string) => {
     setEditingId(null);
     setFormName(v.title); setFormSource(channelTitle); setFormYoutubeUrl(videoUrl(v.id)); setFormLink("");
-    setFormCuisine(""); setFormPairing("");
+    setFormCuisine(""); setFormPairings([]);
     resetExtraFields();
     setIngRows(emptyIngRows()); setStepRows(emptyStepRows());
     setShowForm(true);
@@ -325,7 +325,7 @@ export default function FridgePage() {
     const youtubeUrl = formYoutubeUrl.trim() || null;
     const link = formLink.trim() || null;
     const cuisine = formCuisine || null;
-    const pairing = formPairing || null;
+    const pairing = formPairings.length ? formPairings.join(",") : null;
     const category = formCategory || null;
     const parseNum = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const carbs = parseNum(formCarbs);
@@ -339,11 +339,11 @@ export default function FridgePage() {
       if (editingId) {
         await updateRecipe(editingId, payload);
         setRecipes((prev) => prev.map((r) => r.id === editingId
-          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
           : r));
       } else {
         const saved = await saveRecipe(payload);
-        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
       }
       closeForm();
     } catch (e) {
@@ -571,7 +571,7 @@ export default function FridgePage() {
                         )}
                       </div>
                       <PctBar pct={pct} />
-                      {(r.cuisine || r.category || r.pairing || r.kidFriendly) && (
+                      {(r.cuisine || r.category || r.pairings.length > 0 || r.kidFriendly) && (
                         <div className="flex flex-wrap gap-1.5 mt-3">
                           {r.cuisine && (
                             <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>
@@ -579,11 +579,11 @@ export default function FridgePage() {
                           {r.category && (
                             <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>
                           )}
-                          {r.pairing && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
-                              <Icon icon="solar:wineglass-linear" width={12} />{r.pairing}
+                          {r.pairings.map((p) => (
+                            <span key={p} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
+                              <Icon icon="solar:wineglass-linear" width={12} />{p}
                             </span>
-                          )}
+                          ))}
                           {r.kidFriendly && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white">
                               <Icon icon="solar:smile-circle-linear" width={12} />아이 가능
@@ -982,15 +982,15 @@ export default function FridgePage() {
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술</p>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술 (여러 개 선택 가능)</p>
                 <div className="flex flex-wrap gap-1.5">
                   {PAIRINGS.map((p) => {
-                    const sel = formPairing === p;
+                    const sel = formPairings.includes(p);
                     return (
                       <button
                         key={p}
                         type="button"
-                        onClick={() => setFormPairing((prev) => (prev === p ? "" : p))}
+                        onClick={() => setFormPairings((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]))}
                         className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
                       >{p}</button>
                     );
