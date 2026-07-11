@@ -82,6 +82,22 @@ const INGREDIENT_GROUPS: { label: string; items: string[] }[] = [
 const INGREDIENT_CATEGORY: Record<string, string> = {};
 INGREDIENT_GROUPS.forEach((g) => g.items.forEach((it) => { INGREDIENT_CATEGORY[it] = g.label; }));
 const GROUP_ORDER = [...INGREDIENT_GROUPS.map((g) => g.label), "기타"];
+// 분류별 아이콘 (Tabler 세트 — @iconify/react가 런타임에 로드)
+const GROUP_ICON: Record<string, string> = {
+  "육류": "tabler:meat",
+  "해산물": "tabler:fish",
+  "채소·버섯": "tabler:salad",
+  "과일": "tabler:apple",
+  "두부·콩제품": "tabler:seeding",
+  "계란·유제품": "tabler:egg",
+  "면·곡물·빵": "tabler:bread",
+  "김치·절임": "tabler:pepper",
+  "장·양념·향신료": "tabler:salt",
+  "견과·건과일": "tabler:acorn",
+  "주류·육수·소스": "tabler:bottle",
+  "통조림·가공": "tabler:basket",
+  "기타": "tabler:dots",
+};
 function categorizeIngredient(name: string): string {
   return INGREDIENT_CATEGORY[name] ?? "기타";
 }
@@ -505,7 +521,10 @@ export default function FridgePage() {
                 <div className="flex flex-col gap-3.5">
                   {fridgeListGroups.map((g) => (
                     <div key={g.label}>
-                      <p className="text-[12px] font-bold text-zinc-500 mb-2">{g.label}</p>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Icon icon={GROUP_ICON[g.label] ?? "tabler:dots"} className="text-zinc-500 flex-shrink-0" width={16} />
+                        <p className="text-[12px] font-bold text-zinc-500">{g.label}</p>
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
                         {g.names.map((name) => {
                           const has = stockNames.has(name);
