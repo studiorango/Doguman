@@ -9,17 +9,17 @@ import {
   fetchFridgeStock,
   addFridgeStockItem,
   removeFridgeStockItem,
-  fetchMyRecipes,
+  fetchAllRecipes,
   saveRecipe,
   updateRecipe,
   deleteRecipe,
-  fetchPublicRecipes,
   type FridgeStep,
   type FridgeIngredient,
-  type PublicRecipe,
 } from "@/lib/fridge-db";
 
-type Tab = "stock" | "recipe" | "search" | "browse" | "timetable";
+const ADMIN_USER_ID = process.env.NEXT_PUBLIC_ADMIN_USER_ID;
+
+type Tab = "stock" | "recipe" | "search" | "timetable";
 type Recipe = {
   id: string;
   name: string;
@@ -38,7 +38,6 @@ type Recipe = {
   fat: number | null;
   rating: number;
   kidFriendly: boolean;
-  isPublic: boolean;
 };
 type IngRow = { name: string; amount: string; unit: string };
 type StepRow = { label: string; unit: "min" | "sec"; value: number };
@@ -167,12 +166,8 @@ export default function FridgePage() {
   const [formFat, setFormFat] = useState("");
   const [formRating, setFormRating] = useState(0);
   const [formKidFriendly, setFormKidFriendly] = useState(false);
-  const [formIsPublic, setFormIsPublic] = useState(false);
 
-  const [publicRecipes, setPublicRecipes] = useState<PublicRecipe[]>([]);
-  const [publicLoading, setPublicLoading] = useState(false);
-  const [publicError, setPublicError] = useState("");
-  const [publicLoaded, setPublicLoaded] = useState(false);
+  const [recipeError, setRecipeError] = useState("");
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
   const [stepRows, setStepRows] = useState<StepRow[]>(emptyStepRows());
   const [focusedIngRow, setFocusedIngRow] = useState<number | null>(null);
@@ -198,20 +193,31 @@ export default function FridgePage() {
   }, []);
 
   const loadAll = async () => {
-    const [stockData, recipeData] = await Promise.all([fetchFridgeStock(), fetchMyRecipes()]);
-    setStock(stockData.map((s) => s.name));
-    setRecipes(recipeData.map((r) => ({
-      id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
-      ingredientItems: r.ingredient_items ?? [],
-      steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
-      link: r.link ?? "",
-      cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
-      category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
-      rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false, isPublic: r.is_public ?? false,
-    })));
+    setRecipeError("");
+    // 냉장고 재고: 개인(직접 client). 레시피: 보호 API 경유.
+    try {
+      const stockData = await fetchFridgeStock();
+      setStock(stockData.map((s) => s.name));
+    } catch { /* 재고 로드 실패는 조용히 무시 */ }
+    try {
+      const recipeData = await fetchAllRecipes();
+      setRecipes(recipeData.map((r) => ({
+        id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
+        ingredientItems: r.ingredient_items ?? [],
+        steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
+        link: r.link ?? "",
+        cuisine: r.cuisine ?? "", pairing: r.pairing ?? "",
+        category: r.category ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
+        rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
+      })));
+    } catch (e) {
+      setRecipes([]);
+      setRecipeError(e instanceof Error ? e.message : "레시피를 불러오지 못했어요.");
+    }
     setLoaded(true);
   };
 
+  const isAdmin = !!userId && userId === ADMIN_USER_ID;
   const stockNames = useMemo(() => new Set(stock), [stock]);
   const makeableCount = recipes.filter((r) => matchPct(r, stockNames) >= 80).length;
   const registeredUrls = useMemo(() => new Set(recipes.map((r) => r.youtubeUrl).filter(Boolean)), [recipes]);
@@ -231,7 +237,7 @@ export default function FridgePage() {
 
   const resetExtraFields = () => {
     setFormCategory(""); setFormCarbs(""); setFormProtein(""); setFormFat("");
-    setFormRating(0); setFormKidFriendly(false); setFormIsPublic(false);
+    setFormRating(0); setFormKidFriendly(false);
   };
   const numToStr = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
@@ -249,7 +255,7 @@ export default function FridgePage() {
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairing(r.pairing || "");
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
-    setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false); setFormIsPublic(r.isPublic || false);
+    setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
     setShowForm(true);
@@ -287,17 +293,16 @@ export default function FridgePage() {
     const fat = parseNum(formFat);
     const rating = formRating > 0 ? formRating : null;
     const kidFriendly = formKidFriendly;
-    const isPublic = formIsPublic;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly, is_public: isPublic };
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
     if (editingId) {
       setRecipes((prev) => prev.map((r) => r.id === editingId
-        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly, isPublic }
+        ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairing: pairing ?? "", category: category ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
         : r));
       await updateRecipe(editingId, payload);
     } else {
       const saved = await saveRecipe(payload);
-      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false, isPublic: saved.is_public ?? false }, ...prev]);
+      setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairing: saved.pairing ?? "", category: saved.category ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
     }
     closeForm();
   };
@@ -343,33 +348,14 @@ export default function FridgePage() {
     }
   };
 
-  const loadPublic = async () => {
-    if (!userId) return;
-    setPublicLoading(true); setPublicError("");
-    try {
-      const { recipes: list } = await fetchPublicRecipes(0);
-      setPublicRecipes(list);
-      setPublicLoaded(true);
-    } catch (e) {
-      setPublicError(e instanceof Error ? e.message : "불러오기에 실패했어요.");
-    } finally {
-      setPublicLoading(false);
-    }
-  };
-
-  const goTab = (key: Tab) => {
-    setTab(key);
-    if (key === "browse" && userId && !publicLoaded) loadPublic();
-  };
-
   const ttRecipes = recipes.filter((r) => selectedTT.has(r.id) && r.totalTime > 0);
   const maxTime = ttRecipes.length ? Math.max(...ttRecipes.map((r) => r.totalTime)) : 0;
 
+  // 유튜버 검색은 등록용이라 관리자에게만 노출
   const tabDef: { key: Tab; label: string; desc: string }[] = [
     { key: "stock", label: "냉장고", desc: "재고 관리" },
-    { key: "recipe", label: "레시피", desc: "등록 & 매칭" },
-    { key: "search", label: "유튜버 검색", desc: "영상에서 등록" },
-    { key: "browse", label: "둘러보기", desc: "공개 레시피" },
+    { key: "recipe", label: "레시피", desc: isAdmin ? "등록 & 매칭" : "레시피 보기" },
+    ...(isAdmin ? [{ key: "search" as Tab, label: "유튜버 검색", desc: "영상에서 등록" }] : []),
     { key: "timetable", label: "타임테이블", desc: "동시 완성 계획" },
   ];
 
@@ -399,7 +385,7 @@ export default function FridgePage() {
           {tabDef.map((t) => (
             <button
               key={t.key}
-              onClick={() => goTab(t.key)}
+              onClick={() => setTab(t.key)}
               className="text-center rounded-[14px] py-5 px-3 border-2 transition-all duration-150"
               style={{
                 background: tab === t.key ? "#18181B" : "#fff",
@@ -462,11 +448,22 @@ export default function FridgePage() {
         {tab === "recipe" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[15px] font-extrabold text-zinc-900">내 레시피 ({recipes.length})</h2>
-              <button onClick={openNewForm} disabled={!userId} className={btnPrimaryCls}>+ 레시피 등록</button>
+              <h2 className="text-[15px] font-extrabold text-zinc-900">{isAdmin ? "레시피 관리" : "레시피"} ({recipes.length})</h2>
+              {isAdmin && (
+                <button onClick={openNewForm} className={btnPrimaryCls}>+ 레시피 등록</button>
+              )}
             </div>
 
-            {recipes.length === 0 ? (
+            {!userId ? (
+              <div className={cardCls}>
+                <p className="text-[13px] text-zinc-500 break-keep">로그인하면 레시피를 볼 수 있어요.</p>
+              </div>
+            ) : recipeError ? (
+              <div className={cardCls}>
+                <p className="text-[13px] text-zinc-600 break-keep mb-3">{recipeError}</p>
+                <button onClick={loadAll} className={btnSecondaryCls}>다시 시도</button>
+              </div>
+            ) : recipes.length === 0 ? (
               <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">아직 등록된 레시피가 없어요.</div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -476,14 +473,7 @@ export default function FridgePage() {
                     <div key={r.id} className={cardCls}>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
-                            {r.isPublic && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-900 text-white flex-shrink-0">
-                                <Icon icon="solar:global-linear" width={10} />공개
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
                           <p className="text-[11px] text-zinc-400 mt-0.5">
                             {r.source ? `${r.source} · ` : ""}{r.totalTime > 0 ? `${r.totalTime}분` : "시간 미정"}
                           </p>
@@ -503,10 +493,12 @@ export default function FridgePage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          <button onClick={() => openEditForm(r)} className={btnSecondaryCls}>수정</button>
-                          <button onClick={() => removeRecipe(r.id)} className={btnDestructiveCls}>삭제</button>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex gap-2 flex-shrink-0">
+                            <button onClick={() => openEditForm(r)} className={btnSecondaryCls}>수정</button>
+                            <button onClick={() => removeRecipe(r.id)} className={btnDestructiveCls}>삭제</button>
+                          </div>
+                        )}
                       </div>
                       <PctBar pct={pct} />
                       {(r.cuisine || r.category || r.pairing || r.kidFriendly) && (
@@ -626,69 +618,6 @@ export default function FridgePage() {
                   <span className="text-[11px] font-semibold text-zinc-400">영상 총 {ytChannel.totalResults.toLocaleString()}개</span>
                   <button disabled={!ytChannel.nextPageToken || ytLoading} onClick={() => pageChannel(ytChannel.nextPageToken)} className={`${btnSecondaryCls} disabled:opacity-30`}>다음 →</button>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === "browse" && (
-          <div>
-            {!userId ? (
-              <div className={cardCls}>
-                <p className="text-[13px] text-zinc-500 break-keep">로그인하면 공개 레시피를 둘러볼 수 있어요.</p>
-              </div>
-            ) : publicLoading ? (
-              <div className="text-center py-16 text-[13px] text-zinc-400">불러오는 중...</div>
-            ) : publicError ? (
-              <div className={cardCls}>
-                <p className="text-[13px] text-zinc-600 break-keep mb-3">{publicError}</p>
-                <button onClick={loadPublic} className={btnSecondaryCls}>다시 시도</button>
-              </div>
-            ) : publicRecipes.length === 0 ? (
-              <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">아직 공개된 레시피가 없어요.</div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-[11px] text-zinc-400">공개 레시피 {publicRecipes.length}개</p>
-                {publicRecipes.map((r) => {
-                  const items = r.ingredient_items?.length ? r.ingredient_items : (r.ingredients ?? []).map((n) => ({ name: n, amount: "", unit: "" }));
-                  return (
-                    <div key={r.id} className={cardCls}>
-                      <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
-                        {r.source ? `${r.source} · ` : ""}{r.total_time > 0 ? `${r.total_time}분` : "시간 미정"}
-                      </p>
-                      {(r.rating ?? 0) > 0 && (
-                        <div className="mt-1"><StarRating value={r.rating ?? 0} size={14} /></div>
-                      )}
-                      {(r.youtube_url || r.link) && (
-                        <div className="flex gap-2 mt-0.5">
-                          {r.youtube_url && <a href={r.youtube_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">영상 보기</a>}
-                          {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">링크 열기</a>}
-                        </div>
-                      )}
-                      {(r.cuisine || r.category || r.pairing || r.kid_friendly) && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {r.cuisine && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.cuisine}</span>}
-                          {r.category && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>}
-                          {r.pairing && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:wineglass-linear" width={12} />{r.pairing}</span>}
-                          {r.kid_friendly && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white"><Icon icon="solar:smile-circle-linear" width={12} />아이 가능</span>}
-                        </div>
-                      )}
-                      {items.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {items.map((it, idx) => {
-                            const qty = [it.amount, it.unit].filter(Boolean).join(" ");
-                            return (
-                              <span key={`${it.name}-${idx}`} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
-                                {it.name}{qty ? ` ${qty}` : ""}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
               </div>
             )}
           </div>
@@ -999,19 +928,6 @@ export default function FridgePage() {
                   {formKidFriendly && <Icon icon="solar:check-read-linear" className="text-white" width={13} />}
                 </span>
                 <span className="text-[13px] font-semibold text-zinc-700">아이도 먹을 수 있는 음식</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormIsPublic((p) => !p)}
-                className="flex items-start gap-2.5 text-left"
-              >
-                <span className={`w-5 h-5 rounded-[6px] border-2 flex items-center justify-center flex-shrink-0 transition-colors mt-0.5 ${formIsPublic ? "bg-zinc-900 border-zinc-900" : "border-zinc-300"}`}>
-                  {formIsPublic && <Icon icon="solar:check-read-linear" className="text-white" width={13} />}
-                </span>
-                <span>
-                  <span className="text-[13px] font-semibold text-zinc-700">공개 (다른 사람도 둘러볼 수 있어요)</span>
-                  <span className="block text-[11px] text-zinc-400">끄면 나만 볼 수 있어요.</span>
-                </span>
               </button>
               <div className="flex gap-2 mt-1">
                 <button onClick={submitForm} disabled={!formName.trim()} className={`${btnPrimaryCls} flex-1`}>{editingId ? "수정 저장" : "등록"}</button>

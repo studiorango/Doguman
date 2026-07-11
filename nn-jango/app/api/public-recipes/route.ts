@@ -32,12 +32,11 @@ export async function GET(request: Request) {
   const from = page * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  // 4) service_role로 조회하되 반드시 is_public = true 필터 (#1)
+  // 4) service_role로 관리자 레시피 전체 조회 (직접 테이블 노출 없이 API로만 = #1)
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("fridge_recipes")
     .select(PUBLIC_FIELDS)
-    .eq("is_public", true)
     .order("created_at", { ascending: false })
     .range(from, to);
 
