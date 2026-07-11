@@ -42,7 +42,7 @@ type Recipe = {
   rating: number;
   kidFriendly: boolean;
 };
-type IngRow = { name: string; amount: string; unit: string };
+type IngRow = { name: string; amount: string; unit: string; alts: string[]; altDraft: string };
 type StepRow = { label: string; unit: "min" | "sec"; value: number };
 type Video = { id: string; title: string; thumbnail: string; publishedAt: string };
 type YtChannel = {
@@ -70,12 +70,22 @@ const btnSecondaryCls = "bg-white text-zinc-700 border border-zinc-200 rounded-[
 const btnDestructiveCls = "text-[11px] font-semibold text-zinc-400 hover:text-red-600 transition-colors";
 
 function emptyIngRows(): IngRow[] {
-  return [{ name: "", amount: "", unit: "" }];
+  return [{ name: "", amount: "", unit: "", alts: [], altDraft: "" }];
 }
 function itemsToIngRows(items: FridgeIngredient[], names: string[]): IngRow[] {
-  if (items.length) return items.map((it) => ({ name: it.name, amount: it.amount ?? "", unit: it.unit ?? "" }));
-  if (names.length) return names.map((n) => ({ name: n, amount: "", unit: "" }));
+  if (items.length) return items.map((it) => ({ name: it.name, amount: it.amount ?? "", unit: it.unit ?? "", alts: it.alts ?? [], altDraft: "" }));
+  if (names.length) return names.map((n) => ({ name: n, amount: "", unit: "", alts: [], altDraft: "" }));
   return emptyIngRows();
+}
+// 냉장고에 name 또는 alts 중 하나라도 있으면 있는 것으로 판단
+function itemAvailable(it: { name: string; alts?: string[] }, stockNames: Set<string>) {
+  if (stockNames.has(it.name)) return true;
+  return (it.alts ?? []).some((a) => stockNames.has(a));
+}
+// 매칭·표시에 쓸 재료 항목 (ingredient_items 우선, 없으면 이름만)
+function recipeItems(r: Recipe): { name: string; amount: string; unit: string; alts: string[] }[] {
+  if (r.ingredientItems.length) return r.ingredientItems.map((it) => ({ name: it.name, amount: it.amount ?? "", unit: it.unit ?? "", alts: it.alts ?? [] }));
+  return r.ingredients.map((n) => ({ name: n, amount: "", unit: "", alts: [] }));
 }
 function emptyStepRows(): StepRow[] {
   return [{ label: "", unit: "min", value: 1 }];
@@ -100,9 +110,10 @@ function stepsToStepRows(steps: FridgeStep[]): StepRow[] {
 }
 
 function matchPct(recipe: Recipe, stockNames: Set<string>) {
-  if (!recipe.ingredients.length) return 0;
-  const matched = recipe.ingredients.filter((i) => stockNames.has(i)).length;
-  return Math.round((matched / recipe.ingredients.length) * 100);
+  const items = recipeItems(recipe);
+  if (!items.length) return 0;
+  const matched = items.filter((it) => itemAvailable(it, stockNames)).length;
+  return Math.round((matched / items.length) * 100);
 }
 
 function PctBar({ pct }: { pct: number }) {
@@ -250,10 +261,13 @@ export default function FridgePage() {
     }
   };
 
-  // 등록된 레시피들에 쓰인 재료 이름(중복 제거)
+  // 등록된 레시피들에 쓰인 재료 이름(대체 재료 포함, 중복 제거)
   const recipeIngredientNames = useMemo(() => {
     const set = new Set<string>();
-    recipes.forEach((r) => r.ingredients.forEach((n) => n && set.add(n)));
+    recipes.forEach((r) => recipeItems(r).forEach((it) => {
+      if (it.name) set.add(it.name);
+      it.alts.forEach((a) => a && set.add(a));
+    }));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
   }, [recipes]);
 
@@ -299,7 +313,10 @@ export default function FridgePage() {
     setSubmitting(true);
     const ingredientItems: FridgeIngredient[] = ingRows
       .filter((r) => r.name.trim())
-      .map((r) => ({ name: r.name.trim(), amount: r.amount.trim(), unit: r.unit }));
+      .map((r) => {
+        const alts = r.alts.map((a) => a.trim()).filter(Boolean);
+        return { name: r.name.trim(), amount: r.amount.trim(), unit: r.unit, ...(alts.length ? { alts } : {}) };
+      });
     const ingredients = ingredientItems.map((it) => it.name);
     const steps: FridgeStep[] = stepRows
       .filter((r) => r.label.trim())
@@ -581,16 +598,17 @@ export default function FridgePage() {
                       )}
                       {r.ingredients.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {(r.ingredientItems.length ? r.ingredientItems : r.ingredients.map((n) => ({ name: n, amount: "", unit: "" }))).map((it, idx) => {
+                          {recipeItems(r).map((it, idx) => {
                             const qty = [it.amount, it.unit].filter(Boolean).join(" ");
+                            const label = it.alts.length ? `${it.name} 또는 ${it.alts.join(", ")}` : it.name;
                             return (
                               <span
                                 key={`${it.name}-${idx}`}
                                 className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                                style={stockNames.has(it.name)
+                                style={itemAvailable(it, stockNames)
                                   ? { background: "#18181B", color: "#fff" }
                                   : { background: "#F4F4F5", color: "#A1A1AA" }}
-                              >{it.name}{qty ? ` ${qty}` : ""}</span>
+                              >{label}{qty ? ` ${qty}` : ""}</span>
                             );
                           })}
                         </div>
@@ -771,7 +789,7 @@ export default function FridgePage() {
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">재료 (냉장고에 등록된 재료가 아래에 자동으로 추천돼요)</p>
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => { setIngRows((prev) => [...prev, { name: "", amount: "", unit: "" }]); setFocusedIngRow(null); setUnitPickerRow(null); }}
+                    onClick={() => { setIngRows((prev) => [...prev, { name: "", amount: "", unit: "", alts: [], altDraft: "" }]); setFocusedIngRow(null); setUnitPickerRow(null); }}
                     className={`${btnSecondaryCls} self-start`}
                   >+ 재료 추가</button>
                   {ingRows.map((row, i) => {
@@ -847,6 +865,37 @@ export default function FridgePage() {
                               </div>
                             )}
                           </div>
+                        </div>
+                        {/* 또는(대체 재료) — 냉장고에 이 중 하나만 있어도 있는 것으로 인정 */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-zinc-400">또는</span>
+                          {row.alts.map((alt, ai) => (
+                            <span key={`${alt}-${ai}`} className="inline-flex items-center gap-1 bg-zinc-100 border border-zinc-200 rounded-full pl-2.5 pr-1 py-0.5">
+                              <span className="text-[12px] font-semibold text-zinc-700">{alt}</span>
+                              <button
+                                type="button"
+                                onClick={() => setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, alts: r.alts.filter((_, k) => k !== ai) } : r))}
+                                className="w-[16px] h-[16px] rounded-full flex items-center justify-center text-[9px] font-bold text-zinc-400 hover:bg-zinc-900 hover:text-white transition-colors"
+                              >✕</button>
+                            </span>
+                          ))}
+                          <input
+                            className="flex-1 min-w-[90px] bg-zinc-50 border border-zinc-200 rounded-[8px] px-2.5 py-1.5 text-[12px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 transition-colors"
+                            placeholder="대체 재료 입력 후 Enter"
+                            value={row.altDraft}
+                            onChange={(e) => setIngRows((prev) => prev.map((r, idx) => idx === i ? { ...r, altDraft: e.target.value } : r))}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                setIngRows((prev) => prev.map((r, idx) => {
+                                  if (idx !== i) return r;
+                                  const v = r.altDraft.trim();
+                                  if (!v || r.alts.includes(v) || v === r.name.trim()) return { ...r, altDraft: "" };
+                                  return { ...r, alts: [...r.alts, v], altDraft: "" };
+                                }));
+                              }
+                            }}
+                          />
                         </div>
                       </div>
                     );

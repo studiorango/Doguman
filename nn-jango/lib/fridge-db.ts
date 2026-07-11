@@ -12,7 +12,8 @@ export { supabase };
 // 타입
 // =====================
 export type FridgeStep = { label: string; dur: number };
-export type FridgeIngredient = { name: string; amount: string; unit: string };
+// alts: 대체 가능한 재료들("또는"). 냉장고에 name 또는 alts 중 하나라도 있으면 있는 것으로 판단.
+export type FridgeIngredient = { name: string; amount: string; unit: string; alts?: string[] };
 
 export type DbFridgeRecipe = {
   id: string;
