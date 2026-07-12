@@ -63,11 +63,8 @@ const CUISINES = ["한식", "중식", "일식", "양식", "동남아식", "인�
 const PAIRINGS = ["소주", "맥주", "막걸리", "청주·사케", "레드와인", "화이트와인", "하이볼", "위스키", "고량주", "논알콜"];
 const UNITS = ["개", "마리", "g", "kg", "ml", "L", "큰술", "작은술", "컵", "조각", "장", "줌", "꼬집", "대", "쪽", "톨", "봉", "캔", "병", "박스", "약간"];
 const CATEGORIES = ["밥요리", "면요리", "빵·베이커리", "국물요리", "고기요리", "생선·해산물", "볶음·구이", "튀김", "찜·조림", "샐러드·채소", "죽·스프", "반찬", "디저트", "음료", "기타"];
-// 코스 구성 방식별 단계 (레시피가 한 끼 안에서 어느 자리인지)
-const COURSE_SYSTEMS: { key: string; label: string; roles: string[] }[] = [
-  { key: "korean", label: "한식", roles: ["메인", "국·탕", "반찬", "밥·면", "후식"] },
-  { key: "western", label: "양식", roles: ["전채", "메인", "사이드", "디저트"] },
-];
+// 코스 자리(러프하게 — 어떤 요리든 하나엔 속하도록)
+const COURSE_ROLES = ["메인", "국·탕", "반찬·사이드", "밥·면·빵", "후식"];
 
 // 재료 분류 사전 (냉장고 목록·레시피 재료 체크를 종류별로 묶는 데 사용).
 // 정확히 일치하는 이름만 분류하고, 없는 재료는 "기타"로.
@@ -220,7 +217,7 @@ export default function FridgePage() {
   const [formPairings, setFormPairings] = useState<string[]>([]);
   const [formCategory, setFormCategory] = useState("");
   const [formCourse, setFormCourse] = useState("");
-  const [formCourseSystem, setFormCourseSystem] = useState<"korean" | "western" | "custom">("korean");
+  const [formCourseCustom, setFormCourseCustom] = useState(false);
   const [formCarbs, setFormCarbs] = useState("");
   const [formProtein, setFormProtein] = useState("");
   const [formFat, setFormFat] = useState("");
@@ -232,7 +229,6 @@ export default function FridgePage() {
   const [recipeError, setRecipeError] = useState("");
   const [cuisineFilter, setCuisineFilter] = useState("전체");
   const [courseView, setCourseView] = useState(false);
-  const [builderSystem, setBuilderSystem] = useState<"korean" | "western">("korean");
   const [courseSelection, setCourseSelection] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ingRows, setIngRows] = useState<IngRow[]>(emptyIngRows());
@@ -299,7 +295,7 @@ export default function FridgePage() {
     [recipes, cuisineFilter]
   );
   // 코스 빌더: 선택된 방식의 자리(role)들, 각 자리에 담긴 레시피
-  const builderRoles = COURSE_SYSTEMS.find((s) => s.key === builderSystem)?.roles ?? [];
+  const builderRoles = COURSE_ROLES;
   const courseRecipes = builderRoles
     .map((role) => recipes.find((r) => r.id === courseSelection[role]))
     .filter((r): r is Recipe => !!r);
@@ -352,16 +348,10 @@ export default function FridgePage() {
   }, [recipeIngredientNames, stock]);
 
   const resetExtraFields = () => {
-    setFormCategory(""); setFormCourse(""); setFormCourseSystem("korean");
+    setFormCategory(""); setFormCourse("");
     setFormCarbs(""); setFormProtein(""); setFormFat("");
     setFormRating(0); setFormKidFriendly(false);
-  };
-  // 저장된 course 값이 어느 방식(한식/양식)에 속하는지 추정, 아니면 custom
-  const courseSystemOf = (course: string): "korean" | "western" | "custom" => {
-    if (!course) return "korean";
-    if (COURSE_SYSTEMS[0].roles.includes(course)) return "korean";
-    if (COURSE_SYSTEMS[1].roles.includes(course)) return "western";
-    return "custom";
+    setFormCourseCustom(false);
   };
   const numToStr = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
@@ -379,7 +369,7 @@ export default function FridgePage() {
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairings(r.pairings ?? []);
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
-    setFormCourse(r.course || ""); setFormCourseSystem(courseSystemOf(r.course || ""));
+    setFormCourse(r.course || ""); setFormCourseCustom(!!r.course && !COURSE_ROLES.includes(r.course));
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
@@ -498,38 +488,36 @@ export default function FridgePage() {
   const renderRecipeCard = (r: Recipe) => {
     const items = recipeItems(r);
     const total = items.length;
-    const missing = items.filter((it) => !itemAvailable(it, stockNames)).length;
+    const missingItems = items.filter((it) => !itemAvailable(it, stockNames));
+    const haveItems = items.filter((it) => itemAvailable(it, stockNames));
+    const sortedItems = [...missingItems, ...haveItems]; // 부족한 재료가 앞
+    const missing = missingItems.length;
     const expanded = expandedId === r.id;
-    const canExpand = r.steps.length > 0;
+    const canExpand = r.steps.length > 0 || r.pairings.length > 0;
     return (
       <div
         key={r.id}
         onClick={() => canExpand && setExpandedId(expanded ? null : r.id)}
         className={`${cardCls} ${canExpand ? "cursor-pointer" : ""}`}
       >
-        <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-start justify-between gap-2 mb-3">
           <div>
             <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
               {r.cuisine && (
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-zinc-900 text-white flex-shrink-0">{r.cuisine}</span>
               )}
-              <p className="text-[14px] font-bold text-zinc-900">{r.name}</p>
+              {r.category && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 flex-shrink-0">{r.category}</span>
+              )}
               {canExpand && (
                 <Icon icon="solar:alt-arrow-down-linear" width={14} className={`text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
               )}
             </div>
-            <p className="text-[11px] text-zinc-400 mt-0.5">
+            <p className="text-[11px] text-zinc-400 mt-1">
               {r.source ? `${r.source} · ` : ""}{r.totalTime > 0 ? `${r.totalTime}분` : "시간 미정"}
             </p>
-            {r.rating > 0 && <div className="mt-1"><StarRating value={r.rating} size={14} /></div>}
-            <div className="flex gap-2">
-              {r.youtubeUrl && (
-                <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">영상 보기</a>
-              )}
-              {r.link && (
-                <a href={r.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[11px] text-zinc-400 hover:text-zinc-900 hover:underline">링크 열기</a>
-              )}
-            </div>
+            {r.rating > 0 && <div className="mt-1.5"><StarRating value={r.rating} size={14} /></div>}
           </div>
           {isAdmin && (
             <div className="flex gap-2 flex-shrink-0">
@@ -540,25 +528,21 @@ export default function FridgePage() {
         </div>
 
         {total > 0 && (
-          <div className="flex items-center gap-2.5 mt-1">
+          <div className="flex items-center gap-2.5 mt-3">
+            <span className="text-[11px] font-bold flex-shrink-0 min-w-[52px]" style={{ color: missing === 0 ? "#18181B" : "#71717A" }}>
+              {missing === 0 ? "다 있어요" : `${missing}개 부족`}
+            </span>
             <div className="flex gap-0.5 flex-1">
-              {items.map((it, i) => (
+              {sortedItems.map((it, i) => (
                 <div key={i} className="h-2 flex-1 rounded-[2px]" style={{ background: itemAvailable(it, stockNames) ? "#18181B" : "#E4E4E7" }} />
               ))}
             </div>
-            <span className="text-[11px] font-bold flex-shrink-0" style={{ color: missing === 0 ? "#18181B" : "#71717A" }}>
-              {missing === 0 ? "다 있어요" : `${missing}개 부족`}
-            </span>
           </div>
         )}
 
-        {(r.category || r.course || r.pairings.length > 0 || r.kidFriendly) && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
+        {(r.course || r.kidFriendly) && (
+          <div className="flex flex-wrap gap-1.5 mt-3.5">
             {r.course && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:plate-linear" width={12} />{r.course}</span>}
-            {r.category && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{r.category}</span>}
-            {r.pairings.map((p) => (
-              <span key={p} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:wineglass-linear" width={12} />{p}</span>
-            ))}
             {r.kidFriendly && (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white"><Icon icon="solar:smile-circle-linear" width={12} />아이 가능</span>
             )}
@@ -566,14 +550,14 @@ export default function FridgePage() {
         )}
 
         {(r.carbs !== null || r.protein !== null || r.fat !== null) && (
-          <p className="text-[11px] text-zinc-400 mt-2">
+          <p className="text-[11px] text-zinc-400 mt-3">
             {[r.carbs !== null && `탄 ${r.carbs}g`, r.protein !== null && `단 ${r.protein}g`, r.fat !== null && `지 ${r.fat}g`].filter(Boolean).join(" · ")}
           </p>
         )}
 
         {items.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {items.map((it, idx) => {
+          <div className="flex flex-wrap gap-1 mt-3">
+            {sortedItems.map((it, idx) => {
               const qty = [it.amount, it.unit].filter(Boolean).join(" ");
               const label = it.alts.length ? `${it.name} 또는 ${it.alts.join(", ")}` : it.name;
               return (
@@ -586,15 +570,37 @@ export default function FridgePage() {
         )}
 
         {expanded && canExpand && (
-          <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-col gap-2.5">
-            <p className="text-[11px] font-bold text-zinc-400 tracking-wider">조리순서</p>
-            {r.steps.map((s, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-px">{i + 1}</span>
-                <p className="text-[13px] text-zinc-800 flex-1 break-keep">{s.label}</p>
-                <span className="text-[11px] text-zinc-400 flex-shrink-0 mt-0.5">{formatDur(s.dur)}</span>
+          <div className="mt-4 pt-4 border-t border-zinc-100 flex flex-col gap-4">
+            {(r.youtubeUrl || r.link) && (
+              <div className="flex gap-3">
+                {r.youtubeUrl && <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-900 hover:underline">영상 보기</a>}
+                {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-900 hover:underline">링크 열기</a>}
               </div>
-            ))}
+            )}
+            {r.pairings.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-1.5">어울리는 술</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {r.pairings.map((p) => (
+                    <span key={p} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:wineglass-linear" width={12} />{p}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {r.steps.length > 0 && (
+              <div>
+                <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-2">조리순서</p>
+                <div className="flex flex-col gap-2.5">
+                  {r.steps.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-zinc-900 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-px">{i + 1}</span>
+                      <p className="text-[13px] text-zinc-800 flex-1 break-keep">{s.label}</p>
+                      <span className="text-[11px] text-zinc-400 flex-shrink-0 mt-0.5">{formatDur(s.dur)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -623,18 +629,18 @@ export default function FridgePage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 mb-7 px-10">
+        <div className="grid grid-cols-2 gap-4 mb-7 px-14">
           {tabDef.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className="aspect-square rounded-[16px] border-2 transition-all duration-150 flex items-center justify-center"
+              className="aspect-square rounded-[14px] border-2 transition-all duration-150 flex items-center justify-center"
               style={{
                 background: tab === t.key ? "#18181B" : "#fff",
                 borderColor: tab === t.key ? "#18181B" : "#E4E4E7",
               }}
             >
-              <span className="text-[16px] font-extrabold tracking-tight break-keep" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</span>
+              <span className="text-[15px] font-extrabold tracking-tight break-keep" style={{ color: tab === t.key ? "#fff" : "#18181B" }}>{t.label}</span>
             </button>
           ))}
         </div>
@@ -723,13 +729,6 @@ export default function FridgePage() {
 
                 {courseView ? (
                   <div>
-                    <div className="flex gap-1 bg-zinc-100 border border-zinc-200 rounded-[10px] p-1 w-fit mb-4">
-                      {COURSE_SYSTEMS.map((s) => (
-                        <button key={s.key} onClick={() => { setBuilderSystem(s.key as "korean" | "western"); setCourseSelection({}); }}
-                          className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${builderSystem === s.key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}>{s.label} 코스</button>
-                      ))}
-                    </div>
-
                     <div className={cardCls}>
                       <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-2">내 코스</p>
                       {courseRecipes.length === 0 ? (
@@ -1159,22 +1158,22 @@ export default function FridgePage() {
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">코스 (한 끼에서의 자리 · 선택)</p>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">코스 자리 (한 끼에서의 위치 · 선택)</p>
                 <div className="flex gap-1 bg-zinc-100 border border-zinc-200 rounded-[10px] p-1 mb-2 w-fit">
-                  {([["korean","한식"],["western","양식"],["custom","직접입력"]] as const).map(([key, label]) => (
+                  {([["preset","골라담기"],["custom","직접입력"]] as const).map(([key, label]) => (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => { setFormCourseSystem(key); setFormCourse(""); }}
-                      className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${formCourseSystem === key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}
+                      onClick={() => { setFormCourseCustom(key === "custom"); setFormCourse(""); }}
+                      className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${(formCourseCustom ? "custom" : "preset") === key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}
                     >{label}</button>
                   ))}
                 </div>
-                {formCourseSystem === "custom" ? (
+                {formCourseCustom ? (
                   <input className={inputCls} placeholder="예: 해장, 야식, 브런치" value={formCourse} onChange={(e) => setFormCourse(e.target.value)} />
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
-                    {(COURSE_SYSTEMS.find((s) => s.key === formCourseSystem)?.roles ?? []).map((role) => {
+                    {COURSE_ROLES.map((role) => {
                       const sel = formCourse === role;
                       return (
                         <button
