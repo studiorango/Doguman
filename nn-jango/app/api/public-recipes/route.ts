@@ -6,7 +6,7 @@ const PAGE_SIZE = 24;
 
 // user_id 등 민감 필드는 반환하지 않는다.
 const PUBLIC_FIELDS =
-  "id, name, source, link, youtube_url, ingredients, ingredient_items, steps, total_time, cuisine, pairing, category, course, carbs, protein, fat, rating, kid_friendly, created_at";
+  "id, name, source, link, youtube_url, ingredients, ingredient_items, steps, total_time, servings, cuisine, pairing, category, course, carbs, protein, fat, rating, kid_friendly, created_at";
 
 export async function GET(request: Request) {
   const admin = createAdminClient();

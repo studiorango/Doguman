@@ -24,6 +24,7 @@ export type DbFridgeRecipe = {
   ingredient_items: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
+  servings: number | null;
   youtube_url: string | null;
   link: string | null;
   cuisine: string | null;
@@ -113,6 +114,7 @@ export async function saveRecipe(recipe: {
   ingredient_items?: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
+  servings?: number | null;
   youtube_url?: string | null;
   link?: string | null;
   cuisine?: string | null;
@@ -143,6 +145,7 @@ export async function updateRecipe(id: string, patch: Partial<{
   ingredient_items: FridgeIngredient[];
   steps: FridgeStep[];
   total_time: number;
+  servings: number | null;
   youtube_url: string | null;
   link: string | null;
   cuisine: string | null;

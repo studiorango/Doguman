@@ -31,6 +31,7 @@ type Recipe = {
   ingredientItems: FridgeIngredient[];
   steps: FridgeStep[];
   totalTime: number;
+  servings: number | null;
   youtubeUrl: string;
   link: string;
   cuisine: string;
@@ -215,6 +216,7 @@ export default function FridgePage() {
   const [formLink, setFormLink] = useState("");
   const [formCuisine, setFormCuisine] = useState("");
   const [formPairings, setFormPairings] = useState<string[]>([]);
+  const [formServings, setFormServings] = useState(0);
   const [formCategory, setFormCategory] = useState("");
   const [formCourses, setFormCourses] = useState<string[]>([]);
   const [courseDraft, setCourseDraft] = useState("");
@@ -267,7 +269,7 @@ export default function FridgePage() {
       setRecipes(recipeData.map((r) => ({
         id: r.id, name: r.name, source: r.source ?? "", ingredients: r.ingredients ?? [],
         ingredientItems: r.ingredient_items ?? [],
-        steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
+        steps: r.steps ?? [], totalTime: r.total_time, servings: r.servings ?? null, youtubeUrl: r.youtube_url ?? "",
         link: r.link ?? "",
         cuisine: r.cuisine ?? "", pairings: r.pairing ? r.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [],
         category: r.category ?? "", courses: r.course ? r.course.split(",").map((s) => s.trim()).filter(Boolean) : [], carbs: r.carbs, protein: r.protein, fat: r.fat,
@@ -348,6 +350,7 @@ export default function FridgePage() {
   }, [recipeIngredientNames, stock]);
 
   const resetExtraFields = () => {
+    setFormServings(0);
     setFormCategory(""); setFormCourses([]); setCourseDraft("");
     setFormCarbs(""); setFormProtein(""); setFormFat("");
     setFormRating(0); setFormKidFriendly(false);
@@ -367,6 +370,7 @@ export default function FridgePage() {
     setEditingId(r.id);
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairings(r.pairings ?? []);
+    setFormServings(r.servings ?? 0);
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
     setFormCourses(r.courses ?? []); setCourseDraft("");
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
@@ -400,6 +404,7 @@ export default function FridgePage() {
       .filter((r) => r.label.trim())
       .map((r) => ({ label: r.label.trim(), dur: stepRowDurMinutes(r) }));
     const totalTime = Math.round(steps.reduce((sum, s) => sum + s.dur, 0));
+    const servings = formServings > 0 ? formServings : null;
     const youtubeUrl = formYoutubeUrl.trim() || null;
     const link = formLink.trim() || null;
     const cuisine = formCuisine || null;
@@ -412,17 +417,17 @@ export default function FridgePage() {
     const fat = parseNum(formFat);
     const rating = formRating > 0 ? formRating : null;
     const kidFriendly = formKidFriendly;
-    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, youtube_url: youtubeUrl, link, cuisine, pairing, category, course, carbs, protein, fat, rating, kid_friendly: kidFriendly };
+    const payload = { name: formName.trim(), source: formSource.trim() || null, ingredients, ingredient_items: ingredientItems, steps, total_time: totalTime, servings, youtube_url: youtubeUrl, link, cuisine, pairing, category, course, carbs, protein, fat, rating, kid_friendly: kidFriendly };
 
     try {
       if (editingId) {
         await updateRecipe(editingId, payload);
         setRecipes((prev) => prev.map((r) => r.id === editingId
-          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", courses: [...formCourses], carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, servings, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", courses: [...formCourses], carbs, protein, fat, rating: rating ?? 0, kidFriendly }
           : r));
       } else {
         const saved = await saveRecipe(payload);
-        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", courses: saved.course ? saved.course.split(",").map((s) => s.trim()).filter(Boolean) : [], carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, servings: saved.servings ?? null, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", courses: saved.course ? saved.course.split(",").map((s) => s.trim()).filter(Boolean) : [], carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
       }
       closeForm();
     } catch (e) {
@@ -508,6 +513,9 @@ export default function FridgePage() {
               )}
               {r.category && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 flex-shrink-0">{r.category}</span>
+              )}
+              {r.servings && r.servings > 0 && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 border border-zinc-200 flex-shrink-0">{r.servings}인분</span>
               )}
               {canExpand && (
                 <Icon icon="solar:alt-arrow-down-linear" width={14} className={`text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -962,6 +970,22 @@ export default function FridgePage() {
                   연결된 영상: {formYoutubeUrl}
                 </a>
               )}
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">인분 (선택)</p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setFormServings((n) => Math.max(0, n - 1))}
+                    className="w-8 h-8 rounded-full border border-zinc-200 text-zinc-600 text-[15px] font-bold hover:border-zinc-400 transition-colors"
+                  >−</button>
+                  <span className="text-[13px] font-bold text-zinc-900 w-[64px] text-center">{formServings > 0 ? `${formServings}인분` : "미정"}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFormServings((n) => n + 1)}
+                    className="w-8 h-8 rounded-full border border-zinc-200 text-zinc-600 text-[15px] font-bold hover:border-zinc-400 transition-colors"
+                  >+</button>
+                </div>
+              </div>
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1">재료 (냉장고에 등록된 재료가 아래에 자동으로 추천돼요)</p>
                 <div className="flex flex-col gap-2">
