@@ -36,7 +36,7 @@ type Recipe = {
   cuisine: string;
   pairings: string[];
   category: string;
-  course: string;
+  courses: string[];
   carbs: number | null;
   protein: number | null;
   fat: number | null;
@@ -216,8 +216,8 @@ export default function FridgePage() {
   const [formCuisine, setFormCuisine] = useState("");
   const [formPairings, setFormPairings] = useState<string[]>([]);
   const [formCategory, setFormCategory] = useState("");
-  const [formCourse, setFormCourse] = useState("");
-  const [formCourseCustom, setFormCourseCustom] = useState(false);
+  const [formCourses, setFormCourses] = useState<string[]>([]);
+  const [courseDraft, setCourseDraft] = useState("");
   const [formCarbs, setFormCarbs] = useState("");
   const [formProtein, setFormProtein] = useState("");
   const [formFat, setFormFat] = useState("");
@@ -270,7 +270,7 @@ export default function FridgePage() {
         steps: r.steps ?? [], totalTime: r.total_time, youtubeUrl: r.youtube_url ?? "",
         link: r.link ?? "",
         cuisine: r.cuisine ?? "", pairings: r.pairing ? r.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        category: r.category ?? "", course: r.course ?? "", carbs: r.carbs, protein: r.protein, fat: r.fat,
+        category: r.category ?? "", courses: r.course ? r.course.split(",").map((s) => s.trim()).filter(Boolean) : [], carbs: r.carbs, protein: r.protein, fat: r.fat,
         rating: r.rating ?? 0, kidFriendly: r.kid_friendly ?? false,
       })));
     } catch (e) {
@@ -348,10 +348,9 @@ export default function FridgePage() {
   }, [recipeIngredientNames, stock]);
 
   const resetExtraFields = () => {
-    setFormCategory(""); setFormCourse("");
+    setFormCategory(""); setFormCourses([]); setCourseDraft("");
     setFormCarbs(""); setFormProtein(""); setFormFat("");
     setFormRating(0); setFormKidFriendly(false);
-    setFormCourseCustom(false);
   };
   const numToStr = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
@@ -369,7 +368,7 @@ export default function FridgePage() {
     setFormName(r.name); setFormSource(r.source); setFormYoutubeUrl(r.youtubeUrl || ""); setFormLink(r.link || "");
     setFormCuisine(r.cuisine || ""); setFormPairings(r.pairings ?? []);
     setFormCategory(r.category || ""); setFormCarbs(numToStr(r.carbs)); setFormProtein(numToStr(r.protein)); setFormFat(numToStr(r.fat));
-    setFormCourse(r.course || ""); setFormCourseCustom(!!r.course && !COURSE_ROLES.includes(r.course));
+    setFormCourses(r.courses ?? []); setCourseDraft("");
     setFormRating(r.rating || 0); setFormKidFriendly(r.kidFriendly || false);
     setIngRows(itemsToIngRows(r.ingredientItems, r.ingredients));
     setStepRows(stepsToStepRows(r.steps));
@@ -406,7 +405,7 @@ export default function FridgePage() {
     const cuisine = formCuisine || null;
     const pairing = formPairings.length ? formPairings.join(",") : null;
     const category = formCategory || null;
-    const course = formCourse.trim() || null;
+    const course = formCourses.length ? formCourses.join(",") : null;
     const parseNum = (s: string) => { const n = parseFloat(s); return isNaN(n) ? null : n; };
     const carbs = parseNum(formCarbs);
     const protein = parseNum(formProtein);
@@ -419,11 +418,11 @@ export default function FridgePage() {
       if (editingId) {
         await updateRecipe(editingId, payload);
         setRecipes((prev) => prev.map((r) => r.id === editingId
-          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", course: course ?? "", carbs, protein, fat, rating: rating ?? 0, kidFriendly }
+          ? { ...r, name: payload.name, source: payload.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: youtubeUrl ?? "", link: link ?? "", cuisine: cuisine ?? "", pairings: [...formPairings], category: category ?? "", courses: [...formCourses], carbs, protein, fat, rating: rating ?? 0, kidFriendly }
           : r));
       } else {
         const saved = await saveRecipe(payload);
-        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", course: saved.course ?? "", carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
+        setRecipes((prev) => [{ id: saved.id, name: saved.name, source: saved.source ?? "", ingredients, ingredientItems, steps, totalTime, youtubeUrl: saved.youtube_url ?? "", link: saved.link ?? "", cuisine: saved.cuisine ?? "", pairings: saved.pairing ? saved.pairing.split(",").map((s) => s.trim()).filter(Boolean) : [], category: saved.category ?? "", courses: saved.course ? saved.course.split(",").map((s) => s.trim()).filter(Boolean) : [], carbs: saved.carbs, protein: saved.protein, fat: saved.fat, rating: saved.rating ?? 0, kidFriendly: saved.kid_friendly ?? false }, ...prev]);
       }
       closeForm();
     } catch (e) {
@@ -540,9 +539,11 @@ export default function FridgePage() {
           </div>
         )}
 
-        {(r.course || r.kidFriendly) && (
+        {(r.courses.length > 0 || r.kidFriendly) && (
           <div className="flex flex-wrap gap-1.5 mt-3.5">
-            {r.course && <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:plate-linear" width={12} />{r.course}</span>}
+            {r.courses.map((c) => (
+              <span key={c} className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200"><Icon icon="solar:plate-linear" width={12} />{c}</span>
+            ))}
             {r.kidFriendly && (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-900 text-white"><Icon icon="solar:smile-circle-linear" width={12} />아이 가능</span>
             )}
@@ -749,7 +750,7 @@ export default function FridgePage() {
 
                     <div className="flex flex-col gap-4">
                       {builderRoles.map((role) => {
-                        const candidates = visibleRecipes.filter((r) => r.course === role);
+                        const candidates = visibleRecipes.filter((r) => r.courses.includes(role));
                         const selId = courseSelection[role] || "";
                         return (
                           <div key={role}>
@@ -1158,34 +1159,40 @@ export default function FridgePage() {
                 </div>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">코스 자리 (한 끼에서의 위치 · 선택)</p>
-                <div className="flex gap-1 bg-zinc-100 border border-zinc-200 rounded-[10px] p-1 mb-2 w-fit">
-                  {([["preset","골라담기"],["custom","직접입력"]] as const).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => { setFormCourseCustom(key === "custom"); setFormCourse(""); }}
-                      className={`px-3 py-1 rounded-[7px] text-[12px] font-bold transition-colors ${(formCourseCustom ? "custom" : "preset") === key ? "bg-zinc-900 text-white" : "text-zinc-500"}`}
-                    >{label}</button>
+                <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">코스 자리 (여러 개 선택 가능 · 선택)</p>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {COURSE_ROLES.map((role) => {
+                    const sel = formCourses.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setFormCourses((prev) => (prev.includes(role) ? prev.filter((x) => x !== role) : [...prev, role]))}
+                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
+                      >{role}</button>
+                    );
+                  })}
+                  {formCourses.filter((c) => !COURSE_ROLES.includes(c)).map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1 bg-zinc-900 text-white rounded-full pl-3 pr-1.5 py-1.5 text-[12px] font-semibold">
+                      {c}
+                      <button type="button" onClick={() => setFormCourses((prev) => prev.filter((x) => x !== c))} className="w-[16px] h-[16px] rounded-full flex items-center justify-center text-[10px] hover:bg-white/20">✕</button>
+                    </span>
                   ))}
                 </div>
-                {formCourseCustom ? (
-                  <input className={inputCls} placeholder="예: 해장, 야식, 브런치" value={formCourse} onChange={(e) => setFormCourse(e.target.value)} />
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {COURSE_ROLES.map((role) => {
-                      const sel = formCourse === role;
-                      return (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => setFormCourse((prev) => (prev === role ? "" : role))}
-                          className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${sel ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}
-                        >{role}</button>
-                      );
-                    })}
-                  </div>
-                )}
+                <input
+                  className={inputCls}
+                  placeholder="직접 추가 (예: 해장, 야식 · Enter)"
+                  value={courseDraft}
+                  onChange={(e) => setCourseDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const v = courseDraft.trim();
+                      if (v && !formCourses.includes(v)) setFormCourses((prev) => [...prev, v]);
+                      setCourseDraft("");
+                    }
+                  }}
+                />
               </div>
               <div>
                 <p className="text-[11px] font-semibold text-zinc-500 mb-1.5">페어링 술 (여러 개 선택 가능)</p>
