@@ -891,26 +891,27 @@ export default function FridgePage() {
                 {timetableRows.length > 0 && (
                   <div className={cardCls}>
                     <p className="text-[11px] font-bold text-zinc-400 tracking-wider mb-3">타임테이블 · 총 {ttMaxTime}분에 동시 완성</p>
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-3">
                       {timetableRows.map((row) => {
                         const left = (row.start / ttMaxTime) * 100;
-                        const width = Math.max((row.dur / ttMaxTime) * 100, 4);
+                        const width = Math.max((row.dur / ttMaxTime) * 100, 2);
                         return (
-                          <div key={row.key} className="flex items-center gap-2">
-                            <div className="w-[96px] flex-shrink-0 min-w-0">
-                              <p className="text-[11px] font-semibold text-zinc-800 truncate leading-tight">{row.label}</p>
-                              <p className="text-[10px] text-zinc-400 truncate leading-tight">{row.recipe}</p>
+                          <div key={row.key}>
+                            <div className="flex items-baseline justify-between gap-2 mb-1">
+                              <p className="text-[12px] font-semibold text-zinc-800 break-keep leading-snug">
+                                {row.label}
+                                <span className="text-[10px] font-normal text-zinc-400"> · {row.recipe}</span>
+                              </p>
+                              <span className="text-[11px] font-semibold text-zinc-400 flex-shrink-0">{formatDur(row.dur)}</span>
                             </div>
-                            <div className="flex-1 relative h-5 bg-zinc-100 rounded-[4px]">
-                              <div className="absolute inset-y-0 rounded-[4px] bg-zinc-900 flex items-center px-1.5 overflow-hidden" style={{ left: `${left}%`, width: `${width}%` }}>
-                                <span className="text-[9px] font-semibold text-white whitespace-nowrap">{formatDur(row.dur)}</span>
-                              </div>
+                            <div className="relative h-2.5 bg-zinc-100 rounded-[3px]">
+                              <div className="absolute inset-y-0 rounded-[3px] bg-zinc-900" style={{ left: `${left}%`, width: `${width}%` }} />
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                    <div className="flex justify-between mt-2 ml-[104px]">
+                    <div className="flex justify-between mt-3">
                       <span className="text-[10px] text-zinc-400">지금 시작</span>
                       <span className="text-[10px] text-zinc-400">{ttMaxTime}분 완성</span>
                     </div>
