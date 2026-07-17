@@ -393,6 +393,20 @@ export default function FridgePage() {
 
   const closeForm = () => { setShowForm(false); setEditingId(null); setFocusedIngRow(null); setUnitPickerRow(null); };
 
+  // 작성 중인 내용이 있으면 실수로 닫혀 날아가지 않도록 확인을 받는다.
+  const formHasContent = () =>
+    formName.trim() !== "" || formSource.trim() !== "" || formYoutubeUrl.trim() !== "" || formLink.trim() !== "" ||
+    formCuisine.trim() !== "" || formPairings.length > 0 || formCategory.trim() !== "" ||
+    formCarbs.trim() !== "" || formProtein.trim() !== "" || formFat.trim() !== "" ||
+    formCourses.length > 0 || formServings > 0 || formRating > 0 || formKidFriendly ||
+    ingRows.some((r) => r.name.trim() !== "" || r.amount.trim() !== "" || r.alts.length > 0) ||
+    stepRows.some((r) => r.label.trim() !== "");
+
+  const requestClose = () => {
+    if (formHasContent() && !window.confirm("작성 중인 내용이 사라져요. 닫을까요?")) return;
+    closeForm();
+  };
+
   const submitForm = async () => {
     if (!userId || !formName.trim() || submitting) return; // 중복 클릭 방지
     setSubmitting(true);
@@ -927,12 +941,12 @@ export default function FridgePage() {
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/48">
           <div
             className="flex min-h-full items-start sm:items-center justify-center p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) closeForm(); }}
+            onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
           >
             <div className="bg-white rounded-[16px] w-full max-w-[480px] my-8 p-5 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[15px] font-bold text-zinc-900">{editingId ? "레시피 수정" : "새 레시피"}</p>
-              <button onClick={closeForm} className="text-zinc-400 hover:text-zinc-900 text-[18px] leading-none">✕</button>
+              <button onClick={requestClose} className="text-zinc-400 hover:text-zinc-900 text-[18px] leading-none">✕</button>
             </div>
             <div className="flex flex-col gap-3">
               <div>
@@ -1279,7 +1293,7 @@ export default function FridgePage() {
               </button>
               <div className="flex gap-2 mt-1">
                 <button onClick={submitForm} disabled={!formName.trim() || submitting} className={`${btnPrimaryCls} flex-1`}>{submitting ? "저장 중..." : editingId ? "수정 저장" : "등록"}</button>
-                <button onClick={closeForm} disabled={submitting} className={`${btnSecondaryCls} px-5`}>취소</button>
+                <button onClick={requestClose} disabled={submitting} className={`${btnSecondaryCls} px-5`}>취소</button>
               </div>
             </div>
             </div>
