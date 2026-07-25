@@ -3,6 +3,10 @@
     {
       "path": "/api/check-new-videos",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/youtube-48h/snapshot",
+      "schedule": "0 */2 * * *"
     }
   ]
 }
