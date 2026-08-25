@@ -520,7 +520,7 @@ export default function EarthlingsPage() {
 
         {/* 대기 명단 — 위 표와 동일 양식 (아이 관련 칸은 -) */}
         <div style={{ marginTop: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#3f3f46", marginBottom: 12 }}>대기 중 ({waitingList.length}팀)</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "#3f3f46", marginBottom: 12 }}>예비 부모 ({waitingList.length}팀)</h2>
           <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #EEEEF2", overflow: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
               <TableCols manage={manageMode} />
@@ -581,7 +581,6 @@ export default function EarthlingsPage() {
         </div>
 
         <p style={{ textAlign: "center", fontSize: 11, color: "#C4C4CC", marginTop: 24, lineHeight: 1.7 }}>
-          생일 D-30, D-7, D-Day · 카카오톡 알림<br />
           © 2026 김민제. All rights reserved.
         </p>
       </div>
