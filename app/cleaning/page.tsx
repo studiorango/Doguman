@@ -671,7 +671,7 @@ export default function CleaningPage() {
           </div>
 
           <p className={styles.footerMeta}>
-            오염파이터 · 패브릭 소파 · 침대 매트리스 · 카페트 전문 청소<br />
+            패브릭 소파 · 침대 매트리스 · 카페트 전문 청소<br />
             서울 · 경기 · 인천 방문 서비스
             <span className={styles.footerSep}>|</span>
             대표번호 {PHONE}
