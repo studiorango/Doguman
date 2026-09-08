@@ -128,8 +128,9 @@
 .heroPanel {
   background: var(--navy-900);
   display: flex;
-  justify-content: flex-end;
-  padding: 84px 56px;
+  justify-content: flex-start;
+  /* 왼쪽 끝을 .shell 콘텐츠 좌측(max-width 1120 - padding 40 = 반폭 520px 지점)에 정렬 */
+  padding: 84px 48px 84px max(40px, calc(100% - 520px));
 }
 .heroPanelInner {
   width: 100%;
@@ -240,9 +241,15 @@
 /* ─────────────────── 약속 스트립 (히어로 직하단) ─────────────────── */
 
 .promiseStrip { border-bottom: 1px solid var(--border-primary); }
-.promiseInner { display: grid; grid-template-columns: repeat(3, 1fr); padding: 40px 0; }
+.promiseInner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
 .promiseItem { display: flex; gap: 16px; padding: 4px 32px; border-left: 1px solid var(--border-primary); }
 .promiseItem:first-child { border-left: 0; padding-left: 0; }
+.promiseItem:last-child { padding-right: 0; }
 .promiseNum {
   font-family: var(--font-geist-sans), Pretendard, sans-serif;
   font-size: 20px;
@@ -789,7 +796,7 @@
 /* ─────────────────────────── 반응형 ─────────────────────────── */
 
 @media (max-width: 1024px) {
-  .heroPanel { padding: 68px 48px; }
+  .heroPanel { padding-top: 68px; padding-bottom: 68px; padding-right: 40px; }
   .splitHeader { grid-template-columns: 1fr; gap: 20px; align-items: start; }
   .serviceWide { flex-direction: column; }
   .serviceWide .serviceMedia { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
@@ -822,7 +829,7 @@
 
   .section { padding: 64px 0; }
   .splitHeader { margin-bottom: 32px; }
-  .promiseInner { grid-template-columns: 1fr; gap: 20px; padding: 32px 0; }
+  .promiseInner { grid-template-columns: 1fr; gap: 20px; padding-top: 32px; padding-bottom: 32px; }
   .promiseItem { border-left: 0; padding: 0; }
   .serviceGrid { grid-template-columns: 1fr; }
   .serviceBody { padding: 26px 24px 28px; }
@@ -839,6 +846,7 @@
 
 @media (max-width: 560px) {
   .shell { padding: 0 22px; }
+  .heroPanel { padding-left: 22px; padding-right: 22px; }
   .homeLink { display: none; }
   .headerInner { grid-template-columns: 1fr auto; }
   .btnSolid, .btnGhost { flex: 1 1 100%; justify-content: center; }
