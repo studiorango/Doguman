@@ -795,15 +795,34 @@
   font-size: 13px;
   line-height: 1.85;
 }
-.footerBrand {
-  display: block;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+.footerMark { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
+.footerMarkIcon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #FFFFFF;
-  margin-bottom: 14px;
 }
-.footerDivider { height: 1px; background: rgba(255, 255, 255, 0.12); margin: 28px 0 20px; }
+.footerWordmark { display: flex; flex-direction: column; gap: 3px; line-height: 1; }
+.footerName { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; }
+.footerNameEng { font-size: 10px; font-weight: 700; color: var(--navy-300); }
+
+.footerMeta { margin: 0; font-size: 13px; line-height: 1.95; color: rgba(255, 255, 255, 0.58); }
+.footerSep { color: rgba(255, 255, 255, 0.26); margin: 0 9px; }
+
+.footerDivider { height: 1px; background: rgba(255, 255, 255, 0.12); margin: 26px 0 18px; }
+.footerCopy {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+}
 .footerLink { color: var(--navy-300); text-decoration: none; font-weight: 600; }
 .footerLink:hover { text-decoration: underline; }
 

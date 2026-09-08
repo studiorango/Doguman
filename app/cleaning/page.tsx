@@ -660,11 +660,32 @@ export default function CleaningPage() {
       {/* ── 푸터 ── */}
       <footer className={styles.footer}>
         <div className={styles.shell}>
-          <strong className={styles.footerBrand}>오염파이터</strong>
-          경기도 김포시 구래동<br />
-          대표번호 {PHONE} · 운영시간 평일·주말 09:00–19:00
+          <div className={styles.footerMark}>
+            <span className={styles.footerMarkIcon}>
+              <Icon icon="solar:shield-check-bold" width={20} />
+            </span>
+            <span className={styles.footerWordmark}>
+              <span className={styles.footerName}>오염파이터</span>
+              <span className={`${styles.footerNameEng} ${styles.eng}`}>Fabric Care</span>
+            </span>
+          </div>
+
+          <p className={styles.footerMeta}>
+            오염파이터 · 패브릭 소파 · 침대 매트리스 · 카페트 전문 청소<br />
+            서울 · 경기 · 인천 방문 서비스
+            <span className={styles.footerSep}>|</span>
+            경기도 김포시 구래동<br />
+            대표번호 {PHONE}
+            <span className={styles.footerSep}>|</span>
+            평일 · 주말 09:00–19:00
+          </p>
+
           <div className={styles.footerDivider} />
-          <Link href="/" className={styles.footerLink}>김민제</Link> 서비스 · © 2025 오염파이터
+
+          <div className={styles.footerCopy}>
+            <span>© 2025 오염파이터. ALL RIGHTS RESERVED.</span>
+            <span><Link href="/" className={styles.footerLink}>김민제</Link> 서비스</span>
+          </div>
         </div>
       </footer>
 
