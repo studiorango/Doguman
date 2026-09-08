@@ -38,7 +38,9 @@
   max-width: var(--shell);
   width: 100%;
   margin: 0 auto;
-  padding: 0 40px;
+  /* 좌우만 지정 — 단축속성을 쓰면 .headerInner/.promiseInner의 세로 여백을 덮어씀 */
+  padding-left: 40px;
+  padding-right: 40px;
 }
 
 .section { padding: 96px 0; }
@@ -56,43 +58,33 @@
   border-bottom: 1px solid var(--border-primary);
 }
 .headerInner {
-  height: 68px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 20px;
+  padding-bottom: 14px;
 }
-.homeLink {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--content-secondary);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: color 0.15s ease;
-}
-.homeLink:hover { color: var(--content-primary); }
 .brand {
+  align-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 3px;
   text-decoration: none;
   line-height: 1;
 }
 .brandMark {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 19px;
+  gap: 9px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--navy-900);
 }
-.brandIcon { color: var(--navy-700); font-size: 22px; }
-.brandSub { font-size: 9px; font-weight: 600; color: var(--content-tertiary); }
-.headerRight { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
+.brandIcon { color: var(--navy-700); font-size: 30px; }
+.brandSub { font-size: 11px; font-weight: 600; color: var(--content-tertiary); }
+.headerBottom { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
 .navLinks { display: flex; align-items: center; gap: 24px; }
 .navLink {
   font-size: 14px;
@@ -817,10 +809,22 @@
 }
 
 @media (max-width: 860px) {
+  .shell { padding-left: 28px; padding-right: 28px; }
+
   .navLinks { display: none; }
-  .headerInner { grid-template-columns: auto 1fr auto; height: 60px; }
-  .brand { align-items: flex-start; }
-  .headerRight { gap: 12px; }
+  .headerInner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+  .brand { align-self: auto; align-items: flex-start; gap: 2px; }
+  .brandMark { font-size: 21px; gap: 7px; }
+  .brandIcon { font-size: 24px; }
+  .brandSub { font-size: 9px; }
+  .headerBottom { gap: 10px; }
 
   .hero { grid-template-columns: 1fr; min-height: 0; }
   .heroPanel { padding: 56px 28px 60px; justify-content: flex-start; }
@@ -835,7 +839,6 @@
   .serviceBody { padding: 26px 24px 28px; }
   .methodBand { padding: 60px 0; }
   .includedCard { padding: 26px 24px; }
-  .shell { padding: 0 28px; }
   .priceIntro, .segment, .contactLeft, .contactRight { padding: 40px 28px; }
   .recordGrid { grid-template-columns: repeat(2, 1fr); }
   .estimateFields { grid-template-columns: 1fr; }
@@ -845,10 +848,8 @@
 }
 
 @media (max-width: 560px) {
-  .shell { padding: 0 22px; }
+  .shell { padding-left: 22px; padding-right: 22px; }
   .heroPanel { padding-left: 22px; padding-right: 22px; }
-  .homeLink { display: none; }
-  .headerInner { grid-template-columns: 1fr auto; }
   .btnSolid, .btnGhost { flex: 1 1 100%; justify-content: center; }
   .methodSteps { grid-template-columns: 1fr; }
   .methodStep { border-left: 0; border-top: 1px solid var(--border-primary); }

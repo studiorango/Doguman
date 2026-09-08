@@ -156,13 +156,6 @@ export default function CleaningPage() {
       {/* ── 헤더 ── */}
       <header className={styles.header}>
         <div className={`${styles.shell} ${styles.headerInner}`}>
-          <div>
-            <Link href="/" className={styles.homeLink}>
-              <Icon icon="solar:alt-arrow-left-linear" width={14} />
-              김민제
-            </Link>
-          </div>
-
           <Link href="/cleaning" className={styles.brand}>
             <span className={styles.brandMark}>
               <Icon icon="solar:shield-check-bold" className={styles.brandIcon} />
@@ -171,7 +164,7 @@ export default function CleaningPage() {
             <span className={`${styles.brandSub} ${styles.eng}`}>Mattress Care</span>
           </Link>
 
-          <div className={styles.headerRight}>
+          <div className={styles.headerBottom}>
             <nav className={styles.navLinks}>
               <a href="#service" className={styles.navLink}>주력 서비스</a>
               <a href="#method" className={styles.navLink}>관리 방식</a>
