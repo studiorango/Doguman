@@ -674,10 +674,7 @@ export default function CleaningPage() {
             오염파이터 · 패브릭 소파 · 침대 매트리스 · 카페트 전문 청소<br />
             서울 · 경기 · 인천 방문 서비스
             <span className={styles.footerSep}>|</span>
-            경기도 김포시 구래동<br />
             대표번호 {PHONE}
-            <span className={styles.footerSep}>|</span>
-            평일 · 주말 09:00–19:00
           </p>
 
           <div className={styles.footerDivider} />
