@@ -10,7 +10,7 @@ const PHONE = "010-XXXX-XXXX";
 const PHONE_RAW = PHONE.replace(/-/g, "");
 
 const trustPoints = [
-  { icon: "solar:clipboard-check-linear", label: "방문 점검 · 견적 무료" },
+  { icon: "solar:washing-machine-linear", label: "전용 장비 사용" },
   { icon: "solar:clock-circle-linear", label: "당일 방문 · 당일 완료" },
   { icon: "solar:wallet-money-linear", label: "결과 확인 후 후불 결제" },
 ];
@@ -35,7 +35,7 @@ const services = [
     chip: "Mattress Care",
     title: "침대 매트리스",
     desc: "땀과 피지가 스며든 상판, 집먼지가 쌓이는 봉제선. 매일 몸이 닿는 면부터 잡습니다.",
-    points: ["상판·측면 얼룩 범위 구분", "봉제선과 테두리 집중 집진", "항균·탈취 후 UV 살균 건조"],
+    points: ["상판·측면 얼룩 범위 구분", "봉제선과 테두리 집중 집진", "항균·탈취 후 충분한 건조"],
   },
   {
     id: "carpet",
@@ -51,14 +51,13 @@ const methodSteps = [
   { n: "02", title: "고압 집진", desc: "표면과 봉제선 틈새에 쌓인 먼지와 입자성 오염을 걷어냅니다." },
   { n: "03", title: "얼룩 전처리", desc: "눈에 띄는 생활 얼룩을 구분하고 부위별로 전처리합니다." },
   { n: "04", title: "습식 세척 · 추출", desc: "전용 장비로 세척하고 오염수를 남기지 않고 뽑아냅니다." },
-  { n: "05", title: "항균 · UV 건조", desc: "항균·탈취 처리 후 UV 살균 건조하고 사용 시점을 안내합니다." },
+  { n: "05", title: "항균 · 건조 안내", desc: "항균·탈취 처리 후 건조 상태를 함께 확인하고 사용 시점을 안내합니다." },
 ];
 
 const features = [
   "고압 집진 청소",
   "습식 딥클리닝 (얼룩·냄새 제거)",
   "항균·탈취 처리",
-  "UV 살균 건조",
   "진드기 제거 보장",
 ];
 
@@ -106,7 +105,7 @@ const faqs = [
   },
   {
     q: "청소 후 바로 사용할 수 있나요?",
-    a: "소파와 매트리스는 UV 살균 건조까지 마치면 대부분 당일 사용이 가능합니다. 카페트나 습식 작업 범위가 넓었던 경우에는 통행 가능한 시점과 환기 방법을 따로 안내해 드립니다.",
+    a: "습식 작업 범위가 좁았다면 대부분 당일 사용이 가능합니다. 오염이 심해 넓게 세척했거나 카페트처럼 면적이 큰 경우에는 필요한 건조 시간과 환기 방법을 따로 안내해 드립니다.",
   },
   {
     q: "비용은 어떻게 확인하나요?",
@@ -114,7 +113,7 @@ const faqs = [
   },
   {
     q: "어느 지역까지 방문하나요?",
-    a: "김포와 인천, 경기 서부는 당일 출장이 가능합니다. 그 밖의 지역은 일정에 따라 조율이 필요하니 전화로 문의해 주세요.",
+    a: "서울과 경기, 인천 지역을 방문합니다. 그 밖의 지역은 일정에 따라 조율이 필요하니 전화로 문의해 주세요.",
   },
 ];
 
@@ -188,7 +187,7 @@ export default function CleaningPage() {
 
             <p className={styles.heroSub}>
               패브릭 소파와 침대 매트리스, 카페트를 전용 장비로 관리합니다.
-              김포·인천·경기 서부 지역은 가정부터 사무실까지 당일 출장이 가능합니다.
+              서울·경기·인천의 가정부터 사무실, 상업공간까지 방문합니다.
             </p>
 
             <div className={styles.heroActions}>
@@ -215,11 +214,11 @@ export default function CleaningPage() {
 
         {/* 사진 자리 — 실제 작업 사진으로 교체 필요 */}
         <div className={styles.heroMedia}>
-          <span className={`${styles.heroPill} ${styles.eng}`}>Gimpo · Incheon · Gyeonggi</span>
+          <span className={`${styles.heroPill} ${styles.eng}`}>Seoul · Gyeonggi · Incheon</span>
           <div className={styles.heroCard}>
             <p className={`${styles.heroCardLabel} ${styles.eng}`}>Full Process</p>
             <p className={styles.heroCardText}>
-              집진부터 UV 살균 건조까지<br />
+              집진부터 항균·탈취까지<br />
               한 번 방문으로 완료
             </p>
           </div>
@@ -527,7 +526,6 @@ export default function CleaningPage() {
           <div>
             <span className={`${styles.splitTag} ${styles.eng}`}>FAQ</span>
             <h2 className={styles.splitTitle}>
-              상담 전<br />
               자주 묻는 질문
             </h2>
           </div>
@@ -576,7 +574,7 @@ export default function CleaningPage() {
                 방문 전에 필요한 작업 범위를 안내해 드립니다.
               </p>
               <div className={styles.regionChips}>
-                {["김포", "인천", "경기 서부"].map((r) => (
+                {["서울", "경기", "인천"].map((r) => (
                   <span key={r} className={styles.regionChip}>{r}</span>
                 ))}
               </div>
