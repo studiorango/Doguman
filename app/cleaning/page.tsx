@@ -4,7 +4,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
-import AuthButton from "@/components/auth/AuthButton";
 import styles from "./cleaning.module.css";
 
 const PHONE = "010-XXXX-XXXX";
@@ -166,11 +165,10 @@ export default function CleaningPage() {
 
           <div className={styles.headerBottom}>
             <nav className={styles.navLinks}>
-              <a href="#service" className={styles.navLink}>주력 서비스</a>
+              <a href="#service" className={styles.navLink}>서비스</a>
               <a href="#method" className={styles.navLink}>관리 방식</a>
               <a href="#record" className={styles.navLink}>작업 사례</a>
             </nav>
-            <div className={styles.authSlot}><AuthButton /></div>
             <a href="#estimate" className={styles.headerCta}>견적 상담</a>
           </div>
         </div>
@@ -240,7 +238,7 @@ export default function CleaningPage() {
         </div>
       </section>
 
-      {/* ── 주력 서비스 ── */}
+      {/* ── 서비스 ── */}
       <section id="service" className={styles.section}>
         <div className={styles.shell}>
           <div className={styles.splitHeader}>
@@ -560,8 +558,8 @@ export default function CleaningPage() {
         </div>
       </section>
 
-      {/* ── 상담 안내 ── */}
-      <section className={styles.section}>
+      {/* ── 상담 안내 + 간편 견적 ── */}
+      <section id="estimate" className={styles.section}>
         <div className={styles.shell}>
           <div className={styles.contactSplit}>
             <div className={styles.contactLeft}>
@@ -609,56 +607,56 @@ export default function CleaningPage() {
               <p className={styles.contactNote}>
                 ※ 전화번호는 실제 운영 연락처로 교체해 주세요.
               </p>
+
+              <div className={styles.contactDivider} />
+
+              <form className={styles.estimateForm} onSubmit={handleEstimate}>
+                <p className={styles.estimateTitle}>
+                  간편견적
+                  <span className={`${styles.estimateTitleEng} ${styles.eng}`}>Quick Estimate</span>
+                </p>
+
+                <div className={styles.estimateFields}>
+                  <input
+                    className={styles.estimateInput}
+                    placeholder="성함"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  <input
+                    className={styles.estimateInput}
+                    placeholder="연락처"
+                    inputMode="tel"
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                  />
+                  <select
+                    className={styles.estimateSelect}
+                    value={size}
+                    onChange={(e) => setSize(e.target.value)}
+                  >
+                    <option value="">매트리스 사이즈</option>
+                    {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                <div className={styles.estimateFoot}>
+                  <label className={styles.estimateAgree}>
+                    <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                    상담을 위한 개인정보 수집에 동의합니다
+                  </label>
+                  <button type="submit" className={styles.estimateSubmit} disabled={!canSubmit}>
+                    상담 신청
+                  </button>
+                </div>
+
+                <p className={styles.estimateHint}>
+                  ※ 현재는 별도 저장 없이 입력하신 내용을 문자 앱으로 넘겨 드립니다.
+                </p>
+              </form>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* ── 간편 견적 ── */}
-      <section id="estimate" className={styles.estimateBand}>
-        <form className={`${styles.shell} ${styles.estimateInner}`} onSubmit={handleEstimate}>
-          <div>
-            <p className={styles.estimateBrand}>
-              오염파이터 간편견적
-              <span className={`${styles.estimateBrandEng} ${styles.eng}`}>Quick Estimate</span>
-            </p>
-          </div>
-
-          <div className={styles.estimateFields}>
-            <input
-              className={styles.estimateInput}
-              placeholder="성함"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              className={styles.estimateInput}
-              placeholder="연락처"
-              inputMode="tel"
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-            />
-            <select
-              className={styles.estimateSelect}
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
-            >
-              <option value="">매트리스 사이즈</option>
-              {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <label className={styles.estimateAgree}>
-              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-              상담을 위한 개인정보 수집에 동의합니다
-            </label>
-            <p className={styles.estimateHint}>
-              ※ 현재는 별도 저장 없이 입력하신 내용을 문자 앱으로 넘겨 드립니다.
-            </p>
-          </div>
-
-          <button type="submit" className={styles.estimateSubmit} disabled={!canSubmit}>
-            상담 신청
-          </button>
-        </form>
       </section>
 
       {/* ── 푸터 ── */}

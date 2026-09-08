@@ -43,6 +43,9 @@
   padding-right: 40px;
 }
 
+/* sticky 헤더 높이만큼 앵커 오프셋 확보 */
+.page section { scroll-margin-top: 152px; }
+
 .section { padding: 96px 0; }
 .sectionAlt { background: var(--navy-10); }
 
@@ -84,7 +87,7 @@
 }
 .brandIcon { color: var(--navy-700); font-size: 30px; }
 .brandSub { font-size: 11px; font-weight: 600; color: var(--content-tertiary); }
-.headerBottom { display: flex; align-items: center; justify-content: flex-end; gap: 24px; }
+.headerBottom { display: flex; align-items: center; justify-content: center; gap: 24px; }
 .navLinks { display: flex; align-items: center; gap: 24px; }
 .navLink {
   font-size: 14px;
@@ -107,7 +110,6 @@
 }
 .headerCta:hover { background: var(--navy-700); }
 .headerCta:active { transform: scale(0.98); }
-.authSlot { display: flex; align-items: center; }
 
 /* ─────────────────────────── 히어로 ─────────────────────────── */
 
@@ -713,46 +715,66 @@
 .contactLineValue { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: var(--navy-900); }
 .contactNote { margin: 14px 0 0; font-size: 12px; color: var(--content-tertiary); }
 
-/* ─────────────────────── 간편 견적 폼 ─────────────────────── */
+/* ─────────────── 간편 견적 폼 (상담 안내 우측 칸 내부) ─────────────── */
 
-.estimateBand { background: var(--navy-900); padding: 52px 0; }
-.estimateInner { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 32px; align-items: center; }
-.estimateBrand { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; }
-.estimateBrandEng { display: block; margin-top: 5px; font-size: 10px; font-weight: 700; color: var(--navy-300); }
-.estimateFields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.contactDivider { height: 1px; background: #E4E0D9; margin: 28px 0 24px; }
+
+.estimateForm { display: block; }
+.estimateTitle {
+  margin: 0 0 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--navy-900);
+}
+.estimateTitleEng { font-size: 10px; font-weight: 700; color: var(--navy-500); }
+
+.estimateFields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .estimateInput,
 .estimateSelect {
   width: 100%;
-  height: 50px;
+  height: 48px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.96);
-  padding: 0 16px;
+  border: 1px solid #E4E0D9;
+  background: #FFFFFF;
+  padding: 0 14px;
   font-family: inherit;
   font-size: 14px;
   color: var(--content-primary);
   transition: border-color 0.15s ease;
 }
+.estimateSelect { grid-column: 1 / -1; }
 .estimateInput::placeholder { color: #999999; }
 .estimateInput:focus,
-.estimateSelect:focus { outline: none; border-color: var(--navy-300); }
+.estimateSelect:focus { outline: none; border-color: var(--navy-500); }
+
+.estimateFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
 .estimateAgree {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--content-secondary);
   cursor: pointer;
 }
-.estimateAgree input { width: 16px; height: 16px; accent-color: var(--navy-300); }
+.estimateAgree input { width: 16px; height: 16px; accent-color: var(--navy-700); }
 .estimateSubmit {
-  min-height: 50px;
-  padding: 0 34px;
+  min-height: 48px;
+  padding: 0 30px;
   border: 0;
   border-radius: 12px;
-  background: #FFFFFF;
-  color: var(--navy-900);
+  background: var(--navy-900);
+  color: #FFFFFF;
   font-family: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -760,9 +782,9 @@
   white-space: nowrap;
   transition: background 0.15s ease, opacity 0.15s ease;
 }
-.estimateSubmit:hover:not(:disabled) { background: var(--navy-50); }
-.estimateSubmit:disabled { opacity: 0.42; cursor: not-allowed; }
-.estimateHint { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.45); }
+.estimateSubmit:hover:not(:disabled) { background: var(--navy-700); }
+.estimateSubmit:disabled { opacity: 0.38; cursor: not-allowed; }
+.estimateHint { margin: 14px 0 0; font-size: 12px; color: var(--content-tertiary); }
 
 /* ─────────────────────────── 푸터 ─────────────────────────── */
 
@@ -804,11 +826,10 @@
   .priceSplit, .segmentGrid, .contactSplit, .faqLayout { grid-template-columns: 1fr; }
   .faqLayout { gap: 28px; }
   .recordGrid { grid-template-columns: repeat(3, 1fr); }
-  .estimateInner { grid-template-columns: 1fr; gap: 22px; }
-  .estimateSubmit { width: 100%; }
 }
 
 @media (max-width: 860px) {
+  .page section { scroll-margin-top: 80px; }
   .shell { padding-left: 28px; padding-right: 28px; }
 
   .navLinks { display: none; }
@@ -842,6 +863,8 @@
   .priceIntro, .segment, .contactLeft, .contactRight { padding: 40px 28px; }
   .recordGrid { grid-template-columns: repeat(2, 1fr); }
   .estimateFields { grid-template-columns: 1fr; }
+  .estimateFoot { align-items: stretch; flex-direction: column; }
+  .estimateSubmit { width: 100%; }
   .contactAsk { grid-template-columns: 1fr; }
   .askCell { border-left: 0; border-top: 1px solid #EFECE6; }
   .askCell:first-child { border-top: 0; }
