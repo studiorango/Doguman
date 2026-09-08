@@ -85,8 +85,7 @@
   letter-spacing: -0.03em;
   color: var(--navy-900);
 }
-.brandIcon { color: var(--navy-700); font-size: 30px; }
-.brandSub { font-size: 11px; font-weight: 600; color: var(--content-tertiary); }
+.brandIcon { color: var(--navy-700); width: 30px; height: 30px; flex-shrink: 0; }
 .headerBottom { display: flex; align-items: center; justify-content: center; gap: 24px; }
 .navLinks { display: flex; align-items: center; gap: 24px; }
 .navLink {
@@ -807,9 +806,7 @@
   justify-content: center;
   color: #FFFFFF;
 }
-.footerWordmark { display: flex; flex-direction: column; gap: 3px; line-height: 1; }
-.footerName { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; }
-.footerNameEng { font-size: 10px; font-weight: 700; color: var(--navy-300); }
+.footerName { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; line-height: 1; }
 
 .footerMeta { margin: 0; font-size: 13px; line-height: 1.95; color: rgba(255, 255, 255, 0.58); }
 .footerSep { color: rgba(255, 255, 255, 0.26); margin: 0 9px; }
@@ -860,10 +857,9 @@
     padding-top: 11px;
     padding-bottom: 11px;
   }
-  .brand { align-self: auto; align-items: flex-start; gap: 2px; }
+  .brand { align-self: auto; align-items: flex-start; }
   .brandMark { font-size: 21px; gap: 7px; }
-  .brandIcon { font-size: 24px; }
-  .brandSub { font-size: 9px; }
+  .brandIcon { width: 24px; height: 24px; }
   .headerBottom { gap: 10px; }
 
   .hero { grid-template-columns: 1fr; min-height: 0; }

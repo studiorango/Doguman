@@ -4,6 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import LogoMark from "@/components/cleaning/logo-mark";
 import styles from "./cleaning.module.css";
 
 const PHONE = "010-XXXX-XXXX";
@@ -156,10 +157,9 @@ export default function CleaningPage() {
         <div className={`${styles.shell} ${styles.headerInner}`}>
           <Link href="/cleaning" className={styles.brand}>
             <span className={styles.brandMark}>
-              <Icon icon="solar:shield-check-bold" className={styles.brandIcon} />
+              <LogoMark size={30} className={styles.brandIcon} />
               오염파이터
             </span>
-            <span className={`${styles.brandSub} ${styles.eng}`}>Fabric Care</span>
           </Link>
 
           <div className={styles.headerBottom}>
@@ -662,12 +662,9 @@ export default function CleaningPage() {
         <div className={styles.shell}>
           <div className={styles.footerMark}>
             <span className={styles.footerMarkIcon}>
-              <Icon icon="solar:shield-check-bold" width={20} />
+              <LogoMark size={20} />
             </span>
-            <span className={styles.footerWordmark}>
-              <span className={styles.footerName}>오염파이터</span>
-              <span className={`${styles.footerNameEng} ${styles.eng}`}>Fabric Care</span>
-            </span>
+            <span className={styles.footerName}>오염파이터</span>
           </div>
 
           <p className={styles.footerMeta}>
