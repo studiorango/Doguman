@@ -16,7 +16,7 @@ const trustPoints = [
 ];
 
 const promises = [
-  "매트리스 상태를 먼저 확인합니다.",
+  "원단과 오염 상태를 먼저 확인합니다.",
   "작업 방식을 미리 설명합니다.",
   "결과를 확인한 뒤 결제합니다.",
 ];
@@ -24,30 +24,30 @@ const promises = [
 // 사진 자리는 회색 블록. 실제 작업 사진 확보 후 교체 예정.
 const services = [
   {
-    id: "stain",
-    chip: "Stain Care",
-    title: "땀 · 피지 얼룩",
-    desc: "매일 몸이 닿는 상판에 가장 먼저 쌓입니다. 눌어붙은 정도에 따라 전처리 범위를 나눠 잡습니다.",
-    points: ["상판·측면 얼룩 범위 확인", "부위별 전처리 후 습식 딥클리닝", "오염수 추출까지 함께 확인"],
+    id: "sofa",
+    chip: "Sofa Care",
+    title: "패브릭 소파",
+    desc: "앉는 자리마다 눌리는 정도가 다릅니다. 좌방석과 등받이, 팔걸이, 쿠션 사이 틈을 나눠서 상태를 봅니다.",
+    points: ["원단 종류와 이염 위험 먼저 확인", "눌어붙은 자국은 부위별 전처리", "세척 후 오염수까지 뽑아냄"],
   },
   {
-    id: "dust",
-    chip: "Dust Care",
-    title: "진드기 · 집먼지",
-    desc: "눈에 보이지 않는 미세 오염입니다. 고압 집진으로 표면과 봉제선 틈새부터 걷어냅니다.",
-    points: ["고압 집진으로 입자성 오염 제거", "봉제선·테두리 집중 작업", "UV 살균 건조로 마무리"],
+    id: "mattress",
+    chip: "Mattress Care",
+    title: "침대 매트리스",
+    desc: "땀과 피지가 스며든 상판, 집먼지가 쌓이는 봉제선. 매일 몸이 닿는 면부터 잡습니다.",
+    points: ["상판·측면 얼룩 범위 구분", "봉제선과 테두리 집중 집진", "항균·탈취 후 UV 살균 건조"],
   },
   {
-    id: "odor",
-    chip: "Odor Care",
-    title: "냄새 · 습기",
-    desc: "습기가 남으면 냄새는 다시 올라옵니다. 항균·탈취 처리와 건조 상태까지 확인합니다.",
-    points: ["항균·탈취 처리", "UV 살균 건조", "사용 가능 시점 안내"],
+    id: "carpet",
+    chip: "Carpet Care",
+    title: "카페트",
+    desc: "거실 러그부터 사무실 바닥재까지. 면적과 사람이 다니는 길을 먼저 재고 작업량을 잡습니다.",
+    points: ["재질·면적·집기 배치 확인", "발길 잦은 구역 집중 세척", "건조 시간과 통행 시점 안내"],
   },
 ];
 
 const methodSteps = [
-  { n: "01", title: "상태 확인", desc: "사이즈와 얼룩 범위, 손상 여부를 먼저 살핍니다." },
+  { n: "01", title: "소재 · 오염 확인", desc: "원단과 얼룩 범위, 이염과 손상 가능성을 먼저 살핍니다." },
   { n: "02", title: "고압 집진", desc: "표면과 봉제선 틈새에 쌓인 먼지와 입자성 오염을 걷어냅니다." },
   { n: "03", title: "얼룩 전처리", desc: "눈에 띄는 생활 얼룩을 구분하고 부위별로 전처리합니다." },
   { n: "04", title: "습식 세척 · 추출", desc: "전용 장비로 세척하고 오염수를 남기지 않고 뽑아냅니다." },
@@ -65,27 +65,27 @@ const features = [
 const carePoints = [
   {
     n: "01",
-    name: "땀 · 피지 얼룩",
-    eng: "Stain",
-    first: "상판과 측면의 얼룩 위치, 번진 범위, 고착 정도",
-    focus: "피부 접촉면, 머리·다리 쪽 국소 오염, 눌어붙은 자국",
-    last: "추출한 오염수와 남은 자국 상태, 필요한 건조 시간",
+    name: "패브릭 소파",
+    eng: "Sofa",
+    first: "원단 종류와 커버 분리 여부, 물 빠짐과 이염 위험",
+    focus: "좌방석 눌린 자국, 팔걸이 손때, 쿠션 사이에 낀 부스러기",
+    last: "뽑아낸 오염수 상태와 쿠션별로 필요한 건조 시간",
   },
   {
     n: "02",
-    name: "진드기 · 집먼지",
-    eng: "Dust",
-    first: "사용 기간과 봉제선·테두리에 쌓인 먼지 양",
-    focus: "봉제선, 테두리, 매트리스 측면 틈새",
-    last: "집진 결과와 커버·침구 세탁 권장 주기",
+    name: "침대 매트리스",
+    eng: "Mattress",
+    first: "사이즈와 사용 기간, 얼룩이 번진 위치와 침실 환경",
+    focus: "땀·피지가 밴 상판, 집먼지가 쌓인 봉제선과 테두리",
+    last: "남은 자국 상태와 환기 방법, 다시 눕기까지 걸리는 시간",
   },
   {
     n: "03",
-    name: "냄새 · 습기",
-    eng: "Odor",
-    first: "냄새가 나는 부위와 습기가 남는 위치, 사용 환경",
-    focus: "습기가 고이는 하단면과 벽면 접촉부",
-    last: "항균·탈취 처리 범위와 환기·건조 방법",
+    name: "카페트",
+    eng: "Carpet",
+    first: "재질과 면적, 집기 배치와 걷어낼 수 있는 범위",
+    focus: "발길이 잦은 통로, 의자 밑 국소 얼룩, 가장자리와 벽 접합부",
+    last: "구역별 작업 기록과 건조 중 통행·환기 요령",
   },
 ];
 
@@ -106,11 +106,11 @@ const faqs = [
   },
   {
     q: "청소 후 바로 사용할 수 있나요?",
-    a: "UV 살균 건조까지 마치면 대부분 당일 사용이 가능합니다. 오염이 심해 습식 작업 범위가 넓었던 경우에는 필요한 환기 시간을 함께 안내해 드립니다.",
+    a: "소파와 매트리스는 UV 살균 건조까지 마치면 대부분 당일 사용이 가능합니다. 카페트나 습식 작업 범위가 넓었던 경우에는 통행 가능한 시점과 환기 방법을 따로 안내해 드립니다.",
   },
   {
     q: "비용은 어떻게 확인하나요?",
-    a: "매트리스 사이즈와 오염 상태에 따라 필요한 작업 범위가 달라집니다. 전화나 문자로 사진을 보내주시면 상태를 먼저 확인해 안내드리고, 방문 점검에서 확정한 뒤 작업을 시작합니다.",
+    a: "품목의 크기와 수량, 원단과 오염 상태에 따라 필요한 작업 범위가 달라집니다. 전화나 문자로 사진을 보내주시면 상태를 먼저 확인해 안내드리고, 방문 점검에서 확정한 뒤 작업을 시작합니다.",
   },
   {
     q: "어느 지역까지 방문하나요?",
@@ -119,19 +119,19 @@ const faqs = [
 ];
 
 const askItems = [
-  { n: "01", title: "매트리스 사이즈", desc: "싱글 · 더블 · 퀸 · 킹" },
-  { n: "02", title: "사용 기간", desc: "구입 시기와 관리 이력" },
+  { n: "01", title: "청소 품목", desc: "소파 · 매트리스 · 카페트" },
+  { n: "02", title: "크기와 수량", desc: "인용 · 사이즈 · 면적" },
   { n: "03", title: "지역", desc: "시·구와 방문 희망일" },
   { n: "04", title: "현재 사진", desc: "전체와 오염 부위" },
 ];
 
-const SIZES = ["싱글", "더블", "퀸", "킹", "잘 모르겠어요"];
+const ITEMS = ["패브릭 소파", "침대 매트리스", "카페트", "여러 품목"];
 
 export default function CleaningPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
-  const [size, setSize] = useState("");
+  const [item, setItem] = useState("");
   const [agree, setAgree] = useState(false);
 
   const canSubmit = name.trim() !== "" && contact.trim() !== "" && agree;
@@ -144,7 +144,7 @@ export default function CleaningPage() {
       "[오염파이터 간편견적]",
       `성함: ${name.trim()}`,
       `연락처: ${contact.trim()}`,
-      `매트리스: ${size || "미선택"}`,
+      `청소 품목: ${item || "미선택"}`,
     ].join("\n");
     window.location.href = `sms:${PHONE_RAW}?body=${encodeURIComponent(body)}`;
   };
@@ -160,7 +160,7 @@ export default function CleaningPage() {
               <Icon icon="solar:shield-check-bold" className={styles.brandIcon} />
               오염파이터
             </span>
-            <span className={`${styles.brandSub} ${styles.eng}`}>Mattress Care</span>
+            <span className={`${styles.brandSub} ${styles.eng}`}>Fabric Care</span>
           </Link>
 
           <div className={styles.headerBottom}>
@@ -178,17 +178,17 @@ export default function CleaningPage() {
       <section className={styles.hero}>
         <div className={styles.heroPanel}>
           <div className={styles.heroPanelInner}>
-            <p className={`${styles.heroEyebrow} ${styles.eng}`}>Mattress Hygiene Specialist</p>
+            <p className={`${styles.heroEyebrow} ${styles.eng}`}>Fabric Hygiene Specialist</p>
 
             <h1 className={styles.heroH1}>
-              매트리스 속<br />
+              패브릭 속<br />
               <em className={styles.heroEm}>보이지 않는 오염까지</em><br />
               잡아냅니다.
             </h1>
 
             <p className={styles.heroSub}>
-              집진, 습식 딥클리닝, 항균·탈취, UV 살균 건조까지 전 과정을 방문해 처리합니다.
-              김포·인천·경기 서부 지역은 당일 출장이 가능합니다.
+              패브릭 소파와 침대 매트리스, 카페트를 전용 장비로 관리합니다.
+              김포·인천·경기 서부 지역은 가정부터 사무실까지 당일 출장이 가능합니다.
             </p>
 
             <div className={styles.heroActions}>
@@ -246,13 +246,13 @@ export default function CleaningPage() {
               <span className={`${styles.splitTag} ${styles.eng}`}>Main Service</span>
               <h2 className={styles.splitTitle}>
                 같은 얼룩처럼 보여도<br />
-                오염마다<br />
+                원단마다<br />
                 방법이 다릅니다.
               </h2>
             </div>
             <p className={styles.splitDesc}>
-              땀과 피지, 진드기와 집먼지, 배어든 냄새는 각각 다른 방식으로 접근해야 합니다.
-              오염파이터는 어떤 오염을 어떤 순서로 잡는지 먼저 구분해 안내합니다.
+              소파와 매트리스, 카페트는 원단도 오염이 쌓이는 자리도 다릅니다.
+              오염파이터는 품목별로 무엇을 먼저 확인하는지 나눠서 안내합니다.
             </p>
           </div>
 
@@ -297,12 +297,12 @@ export default function CleaningPage() {
             </h2>
           </div>
           <p className={styles.methodDesc}>
-            단순 표면 청소가 아니라 상태 확인부터 고압 집진, 얼룩 전처리, 습식 세척과 오염수 추출,
+            단순 표면 청소가 아니라 원단 확인부터 고압 집진, 얼룩 전처리, 습식 세척과 오염수 추출,
             건조 안내까지 순서에 맞춰 진행합니다. 어떤 단계에서 무엇을 확인했는지 현장에서 함께 봅니다.
           </p>
           <a href={`tel:${PHONE}`} className={styles.btnGhost}>
             <Icon icon="solar:phone-calling-bold" width={18} />
-            내 매트리스 상태 상담하기
+            내 패브릭 상태 상담하기
           </a>
         </div>
       </section>
@@ -320,7 +320,7 @@ export default function CleaningPage() {
             </div>
             <p className={styles.splitDesc}>
               작업 전 상태와 진행 중 확인 항목, 마무리 결과까지 이해하실 수 있도록 설명합니다.
-              매트리스 상태에 따라 세부 방식은 조정됩니다.
+              원단과 오염 상태에 따라 세부 방식은 조정됩니다.
             </p>
           </div>
 
@@ -349,7 +349,7 @@ export default function CleaningPage() {
           </div>
 
           <p className={styles.methodNote}>
-            ※ 사용 연한, 변색, 손상, 오염 고착 정도에 따라 제거 가능한 범위는 달라질 수 있으며 작업 전에 먼저 설명드립니다.
+            ※ 원단의 사용 연한, 변색, 손상, 오염 고착 정도에 따라 제거 가능한 범위는 달라질 수 있으며 작업 전에 먼저 설명드립니다.
           </p>
         </div>
       </section>
@@ -367,7 +367,7 @@ export default function CleaningPage() {
               </h2>
             </div>
             <p className={styles.splitDesc}>
-              가장 많이 묻는 확인 위치와 관리 포인트를 오염 유형별로 나눴습니다.
+              가장 많이 묻는 확인 위치와 관리 포인트를 품목별로 나눴습니다.
               상담 단계부터 어떤 부분을 중점적으로 보는지 미리 확인하실 수 있습니다.
             </p>
           </div>
@@ -413,7 +413,7 @@ export default function CleaningPage() {
                 확인 후에.
               </h2>
               <p className={styles.priceIntroDesc}>
-                매트리스 상태와 오염 정도, 작업 장소에 따라 필요한 범위가 달라집니다.
+                품목의 크기와 수량, 원단과 오염 상태, 작업 장소에 따라 필요한 범위가 달라집니다.
                 전화나 사진으로 상태를 먼저 확인한 뒤, 작업을 시작하기 전에 비용을 안내해 드립니다.
               </p>
               <a href={`tel:${PHONE}`} className={`${styles.btnSolid} ${styles.priceIntroCta}`}>
@@ -488,12 +488,12 @@ export default function CleaningPage() {
               <span className={`${styles.segmentTag} ${styles.eng}`}>For Home</span>
               <h3 className={styles.segmentTitle}>
                 집에서 매일 쓰는<br />
-                매트리스를 위한 관리
+                패브릭을 위한 관리
               </h3>
               <ul className={styles.segmentList}>
+                <li>패브릭 소파와 모듈 소파</li>
                 <li>싱글 · 더블 · 퀸 · 킹 침대 매트리스</li>
-                <li>토퍼와 매트리스 커버 상태 확인</li>
-                <li>평일 · 주말 모두 방문 일정 조율</li>
+                <li>거실 러그와 가정용 카페트</li>
               </ul>
               <a href={`tel:${PHONE}`} className={styles.segmentBtn}>
                 가정용 서비스 상담
@@ -504,13 +504,13 @@ export default function CleaningPage() {
             <div className={`${styles.segment} ${styles.segmentBiz}`}>
               <span className={`${styles.segmentTag} ${styles.eng}`}>For Business</span>
               <h3 className={styles.segmentTitle}>
-                여러 개를 한 번에<br />
-                맡기는 다량 작업
+                사람이 오래 머무는<br />
+                공간을 위한 관리
               </h3>
               <ul className={styles.segmentList}>
-                <li>게스트하우스 · 펜션 객실 매트리스</li>
-                <li>기숙사 · 고시원 등 다량 작업</li>
-                <li>수량과 희망 일정 기준으로 상담</li>
+                <li>사무실 응접 소파와 의자</li>
+                <li>매장 · 공유오피스 바닥 카페트</li>
+                <li>면적과 수량, 희망 일정 기준으로 상담</li>
               </ul>
               <a href={`tel:${PHONE}`} className={styles.segmentBtn}>
                 다량 작업 상담
@@ -572,7 +572,7 @@ export default function CleaningPage() {
                 빨라집니다.
               </h2>
               <p className={styles.contactDesc}>
-                전화나 문자로 매트리스 사진을 보내주시면 오염 상태를 먼저 확인하고,
+                전화나 문자로 소파, 매트리스, 카페트 사진을 보내주시면 오염 상태를 먼저 확인하고,
                 방문 전에 필요한 작업 범위를 안내해 드립니다.
               </p>
               <div className={styles.regionChips}>
@@ -632,11 +632,11 @@ export default function CleaningPage() {
                   />
                   <select
                     className={styles.estimateSelect}
-                    value={size}
-                    onChange={(e) => setSize(e.target.value)}
+                    value={item}
+                    onChange={(e) => setItem(e.target.value)}
                   >
-                    <option value="">매트리스 사이즈</option>
-                    {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    <option value="">청소 품목</option>
+                    {ITEMS.map((v) => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
 
