@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Icon } from "@iconify/react";
 import AuthButton from "@/components/auth/AuthButton";
 import styles from "./cleaning.module.css";
@@ -12,7 +11,7 @@ const PHONE = "010-XXXX-XXXX";
 const PHONE_RAW = PHONE.replace(/-/g, "");
 
 const trustPoints = [
-  { icon: "solar:tag-price-linear", label: "사이즈 무관 단일 요금" },
+  { icon: "solar:clipboard-check-linear", label: "방문 점검 · 견적 무료" },
   { icon: "solar:clock-circle-linear", label: "당일 방문 · 당일 완료" },
   { icon: "solar:wallet-money-linear", label: "결과 확인 후 후불 결제" },
 ];
@@ -23,24 +22,24 @@ const promises = [
   "결과를 확인한 뒤 결제합니다.",
 ];
 
-// 이미지는 모두 더미(picsum). 실제 작업 사진 확보 후 교체 예정.
+// 사진 자리는 회색 블록. 실제 작업 사진 확보 후 교체 예정.
 const services = [
   {
-    seed: "mattress-sweat-stain-care",
+    id: "stain",
     chip: "Stain Care",
     title: "땀 · 피지 얼룩",
     desc: "매일 몸이 닿는 상판에 가장 먼저 쌓입니다. 눌어붙은 정도에 따라 전처리 범위를 나눠 잡습니다.",
     points: ["상판·측면 얼룩 범위 확인", "부위별 전처리 후 습식 딥클리닝", "오염수 추출까지 함께 확인"],
   },
   {
-    seed: "mattress-dust-mite-care",
+    id: "dust",
     chip: "Dust Care",
     title: "진드기 · 집먼지",
     desc: "눈에 보이지 않는 미세 오염입니다. 고압 집진으로 표면과 봉제선 틈새부터 걷어냅니다.",
     points: ["고압 집진으로 입자성 오염 제거", "봉제선·테두리 집중 작업", "UV 살균 건조로 마무리"],
   },
   {
-    seed: "mattress-odor-uv-care",
+    id: "odor",
     chip: "Odor Care",
     title: "냄새 · 습기",
     desc: "습기가 남으면 냄새는 다시 올라옵니다. 항균·탈취 처리와 건조 상태까지 확인합니다.",
@@ -93,16 +92,13 @@ const carePoints = [
 
 const payFlow = [
   { n: "01", text: "전화 또는\n사진 상담" },
-  { n: "02", text: "방문 점검 후\n비용 확정" },
+  { n: "02", text: "상태 확인 후\n비용 안내" },
   { n: "03", text: "예약일 방문\n전문 청소" },
   { n: "04", text: "결과 확인 후\n후불 결제" },
 ];
 
 // 자리 배치용 더미 12장. 실제 작업 사진으로 교체 예정.
-const records = Array.from({ length: 12 }, (_, i) => ({
-  n: String(i + 1).padStart(2, "0"),
-  seed: `mattress-work-record-${i + 1}`,
-}));
+const records = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
 const faqs = [
   {
@@ -114,8 +110,8 @@ const faqs = [
     a: "UV 살균 건조까지 마치면 대부분 당일 사용이 가능합니다. 오염이 심해 습식 작업 범위가 넓었던 경우에는 필요한 환기 시간을 함께 안내해 드립니다.",
   },
   {
-    q: "사이즈가 커도 5만원인가요?",
-    a: "싱글부터 킹까지 같은 요금입니다. 다만 오염이 심하거나 특수 처리가 필요하면 추가 비용이 생길 수 있고, 이때는 작업을 시작하기 전에 먼저 설명드립니다.",
+    q: "비용은 어떻게 확인하나요?",
+    a: "매트리스 사이즈와 오염 상태에 따라 필요한 작업 범위가 달라집니다. 전화나 문자로 사진을 보내주시면 상태를 먼저 확인해 안내드리고, 방문 점검에서 확정한 뒤 작업을 시작합니다.",
   },
   {
     q: "어느 지역까지 방문하나요?",
@@ -226,16 +222,8 @@ export default function CleaningPage() {
           </div>
         </div>
 
+        {/* 사진 자리 — 실제 작업 사진으로 교체 필요 */}
         <div className={styles.heroMedia}>
-          {/* 더미 이미지 — 실제 작업 사진으로 교체 필요 */}
-          <Image
-            src="https://picsum.photos/seed/mattress-deep-cleaning-onsite/1200/1400"
-            alt="매트리스 방문 청소 작업 현장"
-            fill
-            priority
-            sizes="(max-width: 860px) 100vw, 50vw"
-            className={styles.heroImg}
-          />
           <span className={`${styles.heroPill} ${styles.eng}`}>Gimpo · Incheon · Gyeonggi</span>
           <div className={styles.heroCard}>
             <p className={`${styles.heroCardLabel} ${styles.eng}`}>Full Process</p>
@@ -278,21 +266,14 @@ export default function CleaningPage() {
           </div>
 
           <div className={styles.serviceGrid}>
-            {services.map(({ seed, chip, title, desc, points }, i) => (
+            {services.map(({ id, chip, title, desc, points }, i) => (
               <article
-                key={seed}
+                key={id}
                 className={`${styles.serviceCard} ${i === 0 ? styles.serviceWide : ""}`}
               >
+                {/* 사진 자리 — 실제 작업 사진으로 교체 필요 */}
                 <div className={styles.serviceMedia}>
                   <span className={`${styles.serviceChip} ${styles.eng}`}>{chip}</span>
-                  {/* 더미 이미지 — 실제 작업 사진으로 교체 필요 */}
-                  <Image
-                    src={`https://picsum.photos/seed/${seed}/900/700`}
-                    alt={`${title} 관리`}
-                    fill
-                    sizes="(max-width: 860px) 100vw, 50vw"
-                    className={styles.serviceImg}
-                  />
                 </div>
                 <div className={styles.serviceBody}>
                   <span className={`${styles.serviceIndex} ${styles.eng}`}>{String(i + 1).padStart(2, "0")}</span>
@@ -426,29 +407,28 @@ export default function CleaningPage() {
         </div>
       </section>
 
-      {/* ── 요금 · 후불 ── */}
+      {/* ── 상담 · 후불 ── */}
       <section id="pricing" className={`${styles.section} ${styles.sectionAlt}`}>
         <div className={styles.shell}>
           <div className={styles.priceSplit}>
             <div className={styles.priceIntro}>
               <span className={`${styles.splitTag} ${styles.eng}`} style={{ color: "#9DB4CB" }}>
-                Clear Price, Pay After
+                Estimate, Pay After
               </span>
               <h2 className={styles.priceIntroTitle}>
-                요금은 먼저<br />
+                비용은 상담으로<br />
                 정확하게,<br />
                 결제는 결과<br />
                 확인 후에.
               </h2>
-              <div className={styles.priceTicket}>
-                <p className={styles.priceTicketLabel}>매트리스 청소</p>
-                <p className={styles.priceTicketAmount}>5<sub>만원</sub></p>
-                <p className={styles.priceTicketNote}>싱글 · 더블 · 퀸 · 킹 동일 · 전 과정 포함</p>
-              </div>
               <p className={styles.priceIntroDesc}>
-                사이즈로 요금을 올려 받지 않습니다. 다만 오염 상태에 따라 필요한 작업 범위가 달라질 수 있어,
-                방문 점검에서 확인한 뒤 작업 전에 비용을 확정합니다.
+                매트리스 상태와 오염 정도, 작업 장소에 따라 필요한 범위가 달라집니다.
+                전화나 사진으로 상태를 먼저 확인한 뒤, 작업을 시작하기 전에 비용을 안내해 드립니다.
               </p>
+              <a href={`tel:${PHONE}`} className={`${styles.btnSolid} ${styles.priceIntroCta}`}>
+                <Icon icon="solar:phone-calling-bold" width={18} />
+                견적 문의하기
+              </a>
               <p className={styles.priceIntroNote}>
                 현장에서 추가 작업이 필요하다면 진행 전에 먼저 설명드립니다.
               </p>
@@ -493,16 +473,8 @@ export default function CleaningPage() {
           </div>
 
           <div className={styles.recordGrid}>
-            {records.map(({ n, seed }) => (
+            {records.map((n) => (
               <div key={n} className={styles.recordItem}>
-                {/* 더미 이미지 — 실제 작업 사진으로 교체 필요 */}
-                <Image
-                  src={`https://picsum.photos/seed/${seed}/600/450`}
-                  alt={`작업 기록 ${n}`}
-                  fill
-                  sizes="(max-width: 860px) 50vw, 25vw"
-                  className={styles.recordImg}
-                />
                 <div className={styles.recordCaption}>
                   <span className={styles.eng}>Work Record</span>
                   <span className={styles.recordCaptionNum}>{n}</span>
@@ -512,7 +484,7 @@ export default function CleaningPage() {
           </div>
 
           <p className={styles.recordNote}>
-            ※ 현재 표시된 이미지는 자리 배치를 위한 임시 이미지입니다. 실제 작업 사진으로 교체할 예정입니다.
+            ※ 회색으로 비워 둔 칸은 실제 작업 사진이 들어갈 자리입니다.
           </p>
         </div>
       </section>

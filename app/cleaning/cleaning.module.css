@@ -13,6 +13,8 @@
   --navy-50:  #EDF2F8;
   --navy-10:  #F5F7FA;   /* Support/NeutralAlt */
 
+  --placeholder: #E6E6E6;   /* Neutral100 — 사진 들어갈 자리 */
+
   --content-primary: #222222;
   --content-secondary: #8B8B8B;
   --content-tertiary: #BBBBBB;
@@ -36,7 +38,7 @@
   max-width: var(--shell);
   width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
 }
 
 .section { padding: 96px 0; }
@@ -199,9 +201,8 @@
   position: relative;
   min-height: 620px;
   overflow: hidden;
-  background: var(--navy-800);
+  background: var(--placeholder);
 }
-.heroImg { object-fit: cover; }
 .heroPill {
   position: absolute;
   top: 28px;
@@ -292,9 +293,8 @@
 }
 .serviceCard:hover { border-color: var(--navy-200); box-shadow: 0 10px 30px rgba(20, 39, 58, 0.08); }
 .serviceWide { grid-column: 1 / -1; flex-direction: row; }
-.serviceMedia { position: relative; aspect-ratio: 4 / 3; background: var(--navy-50); flex-shrink: 0; }
+.serviceMedia { position: relative; aspect-ratio: 4 / 3; background: var(--placeholder); flex-shrink: 0; }
 .serviceWide .serviceMedia { width: 46%; aspect-ratio: auto; min-height: 340px; }
-.serviceImg { object-fit: cover; }
 .serviceChip {
   position: absolute;
   top: 16px;
@@ -497,24 +497,7 @@
   color: #FFFFFF;
 }
 .priceIntroDesc { margin: 22px 0 0; font-size: 15px; line-height: 1.85; color: rgba(255, 255, 255, 0.68); }
-.priceTicket {
-  margin-top: 30px;
-  padding: 22px 24px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-}
-.priceTicketLabel { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.6); }
-.priceTicketAmount {
-  margin: 0;
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 1;
-  color: #FFFFFF;
-}
-.priceTicketAmount sub { font-size: 16px; font-weight: 700; bottom: 0; margin-left: 4px; letter-spacing: -0.02em; }
-.priceTicketNote { margin: 10px 0 0; font-size: 13px; color: var(--navy-300); }
+.priceIntroCta { margin-top: 32px; align-self: flex-start; }
 .priceIntroNote { margin: 24px 0 0; font-size: 13px; line-height: 1.75; color: rgba(255, 255, 255, 0.48); }
 
 .priceQuad { display: grid; grid-template-columns: 1fr 1fr; }
@@ -552,8 +535,7 @@
 .recordStatLabel { margin: 0 0 4px; font-size: 12px; font-weight: 800; color: var(--navy-900); }
 .recordStatDesc { margin: 0; font-size: 13px; color: var(--content-secondary); }
 .recordGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.recordItem { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--navy-50); }
-.recordImg { object-fit: cover; }
+.recordItem { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: var(--placeholder); }
 .recordCaption {
   position: absolute;
   left: 0;
@@ -807,7 +789,7 @@
 /* ─────────────────────────── 반응형 ─────────────────────────── */
 
 @media (max-width: 1024px) {
-  .heroPanel { padding: 68px 40px; }
+  .heroPanel { padding: 68px 48px; }
   .splitHeader { grid-template-columns: 1fr; gap: 20px; align-items: start; }
   .serviceWide { flex-direction: column; }
   .serviceWide .serviceMedia { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
@@ -834,7 +816,7 @@
   .headerRight { gap: 12px; }
 
   .hero { grid-template-columns: 1fr; min-height: 0; }
-  .heroPanel { padding: 56px 24px 60px; justify-content: flex-start; }
+  .heroPanel { padding: 56px 28px 60px; justify-content: flex-start; }
   .heroPanelInner { max-width: none; }
   .heroMedia { min-height: 0; aspect-ratio: 4 / 3; }
 
@@ -846,7 +828,8 @@
   .serviceBody { padding: 26px 24px 28px; }
   .methodBand { padding: 60px 0; }
   .includedCard { padding: 26px 24px; }
-  .priceIntro, .segment, .contactLeft, .contactRight { padding: 40px 26px; }
+  .shell { padding: 0 28px; }
+  .priceIntro, .segment, .contactLeft, .contactRight { padding: 40px 28px; }
   .recordGrid { grid-template-columns: repeat(2, 1fr); }
   .estimateFields { grid-template-columns: 1fr; }
   .contactAsk { grid-template-columns: 1fr; }
@@ -855,6 +838,7 @@
 }
 
 @media (max-width: 560px) {
+  .shell { padding: 0 22px; }
   .homeLink { display: none; }
   .headerInner { grid-template-columns: 1fr auto; }
   .btnSolid, .btnGhost { flex: 1 1 100%; justify-content: center; }
