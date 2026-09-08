@@ -36,7 +36,7 @@ const services = [
     chip: "Mattress Care",
     title: "침대 매트리스",
     desc: "땀과 피지가 스며든 상판, 집먼지가 쌓이는 봉제선. 매일 몸이 닿는 면부터 잡습니다.",
-    points: ["상판·측면 얼룩 범위 구분", "봉제선과 테두리 집중 집진", "항균·탈취 후 충분한 건조"],
+    points: ["상판·측면 얼룩 범위 구분", "봉제선과 테두리 집중 집진", "세척 후 충분한 건조"],
   },
   {
     id: "carpet",
@@ -52,13 +52,12 @@ const methodSteps = [
   { n: "02", title: "고압 집진", desc: "표면과 봉제선 틈새에 쌓인 먼지와 입자성 오염을 걷어냅니다." },
   { n: "03", title: "얼룩 전처리", desc: "눈에 띄는 생활 얼룩을 구분하고 부위별로 전처리합니다." },
   { n: "04", title: "습식 세척 · 추출", desc: "전용 장비로 세척하고 오염수를 남기지 않고 뽑아냅니다." },
-  { n: "05", title: "항균 · 건조 안내", desc: "항균·탈취 처리 후 건조 상태를 함께 확인하고 사용 시점을 안내합니다." },
+  { n: "05", title: "건조 · 결과 안내", desc: "마무리 상태를 함께 확인하고 건조 방법과 사용 시점을 안내합니다." },
 ];
 
 const features = [
   "고압 집진 청소",
   "습식 딥클리닝 (얼룩·냄새 제거)",
-  "항균·탈취 처리",
   "진드기 제거 보장",
 ];
 
@@ -218,7 +217,7 @@ export default function CleaningPage() {
           <div className={styles.heroCard}>
             <p className={`${styles.heroCardLabel} ${styles.eng}`}>Full Process</p>
             <p className={styles.heroCardText}>
-              집진부터 항균·탈취까지<br />
+              집진부터 세척·건조까지<br />
               한 번 방문으로 완료
             </p>
           </div>
@@ -609,10 +608,7 @@ export default function CleaningPage() {
               <div className={styles.contactDivider} />
 
               <form className={styles.estimateForm} onSubmit={handleEstimate}>
-                <p className={styles.estimateTitle}>
-                  간편견적
-                  <span className={`${styles.estimateTitleEng} ${styles.eng}`}>Quick Estimate</span>
-                </p>
+                <p className={styles.estimateTitle}>간편견적</p>
 
                 <div className={styles.estimateFields}>
                   <input
