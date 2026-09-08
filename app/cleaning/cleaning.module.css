@@ -28,6 +28,12 @@
   word-break: keep-all;
 }
 
+/* 로고 워드마크 전용 — 본문은 Pretendard 그대로 */
+.logoFont {
+  font-family: var(--font-logo), Pretendard, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-weight: 900;
+}
+
 .eng {
   font-family: var(--font-geist-sans), Pretendard, sans-serif;
   letter-spacing: 0.18em;
@@ -79,13 +85,21 @@
 .brandMark {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
+  line-height: 1;
   color: var(--navy-900);
 }
-.brandIcon { color: var(--navy-700); width: 30px; height: 30px; flex-shrink: 0; }
+/* Gothic A1은 글자 잉크가 폰트 박스 중앙보다 0.08em 위에 앉는다.
+   가운데 정렬만으로는 마크가 내려가 보여서 같은 값만큼 끌어올린다. */
+.brandIcon {
+  color: var(--navy-700);
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  transform: translateY(-0.08em);
+}
 .headerBottom { display: flex; align-items: center; justify-content: center; gap: 24px; }
 .navLinks { display: flex; align-items: center; gap: 24px; }
 .navLink {
@@ -796,6 +810,7 @@
 }
 .footerMark { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
 .footerMarkIcon {
+  transform: translateY(-1.5px);
   width: 40px;
   height: 40px;
   flex-shrink: 0;
@@ -806,7 +821,7 @@
   justify-content: center;
   color: #FFFFFF;
 }
-.footerName { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: #FFFFFF; line-height: 1; }
+.footerName { font-size: 19px; letter-spacing: -0.04em; color: #FFFFFF; line-height: 1; }
 
 .footerMeta { margin: 0; font-size: 13px; line-height: 1.95; color: rgba(255, 255, 255, 0.58); }
 .footerSep { color: rgba(255, 255, 255, 0.26); margin: 0 9px; }

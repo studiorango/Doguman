@@ -156,7 +156,7 @@ export default function CleaningPage() {
       <header className={styles.header}>
         <div className={`${styles.shell} ${styles.headerInner}`}>
           <Link href="/cleaning" className={styles.brand}>
-            <span className={styles.brandMark}>
+            <span className={`${styles.brandMark} ${styles.logoFont}`}>
               <LogoMark size={30} className={styles.brandIcon} />
               오염파이터
             </span>
@@ -664,7 +664,7 @@ export default function CleaningPage() {
             <span className={styles.footerMarkIcon}>
               <LogoMark size={20} />
             </span>
-            <span className={styles.footerName}>오염파이터</span>
+            <span className={`${styles.footerName} ${styles.logoFont}`}>오염파이터</span>
           </div>
 
           <p className={styles.footerMeta}>
