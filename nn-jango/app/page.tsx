@@ -145,6 +145,35 @@ function emptyStepRows(): StepRow[] {
 function videoUrl(id: string) {
   return `https://youtube.com/watch?v=${id}`;
 }
+// 유튜브 링크에서 영상 ID와 시작 시간(초)을 뽑는다. watch / youtu.be / shorts / embed / live 지원.
+function parseYT(url: string): { id: string; start: number } | null {
+  try {
+    const u = new URL(url.trim());
+    let id: string | null = null;
+    if (u.hostname.includes("youtu.be")) id = u.pathname.slice(1).split("/")[0];
+    else if (u.searchParams.get("v")) id = u.searchParams.get("v");
+    else {
+      const m = u.pathname.match(/\/(shorts|embed|live)\/([\w-]{11})/);
+      if (m) id = m[2];
+    }
+    if (!id || !/^[\w-]{11}$/.test(id)) return null;
+    const t = u.searchParams.get("t") || u.searchParams.get("start") || "0";
+    let start = 0;
+    const mm = String(t).match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?/);
+    if (mm) start = (+mm[1] || 0) * 3600 + (+mm[2] || 0) * 60 + (+mm[3] || 0);
+    return { id, start };
+  } catch {
+    return null;
+  }
+}
+// 4분할 자리: 좌상 / 우상 / 좌하 / 우하 (그리드 행 우선 순서와 일치)
+const BOARD_POS = [
+  { k: 0, arrow: "↖", name: "왼쪽 위" },
+  { k: 1, arrow: "↗", name: "오른쪽 위" },
+  { k: 2, arrow: "↙", name: "왼쪽 아래" },
+  { k: 3, arrow: "↘", name: "오른쪽 아래" },
+] as const;
+const BOARD_STORAGE_KEY = "nnjango-board-v1";
 function toggleStepUnit(row: StepRow): StepRow {
   if (row.unit === "min") return { ...row, unit: "sec", value: Math.round(row.value * 60) };
   return { ...row, unit: "min", value: Math.max(0, Math.round(row.value / 60)) };
@@ -238,6 +267,10 @@ export default function FridgePage() {
   const [unitPickerRow, setUnitPickerRow] = useState<number | null>(null);
 
 
+  // 4분할 보드: 각 자리에 담긴 레시피 id(없으면 null) + 분할 수(1/2/4)
+  const [boardSlots, setBoardSlots] = useState<(string | null)[]>([null, null, null, null]);
+  const [boardLayout, setBoardLayout] = useState<1 | 2 | 4>(4);
+
   const [ytQuery, setYtQuery] = useState("");
   const [ytLoading, setYtLoading] = useState(false);
   const [ytError, setYtError] = useState("");
@@ -283,6 +316,38 @@ export default function FridgePage() {
   const isAdmin = !!userId && userId === ADMIN_USER_ID;
   const stockNames = useMemo(() => new Set(stock), [stock]);
   const registeredUrls = useMemo(() => new Set(recipes.map((r) => r.youtubeUrl).filter(Boolean)), [recipes]);
+
+  // 4분할 보드 상태를 기기별로 기억 (실패해도 조용히 무시)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BOARD_STORAGE_KEY);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (Array.isArray(s.slots) && s.slots.length === 4) setBoardSlots(s.slots);
+        if (s.layout === 1 || s.layout === 2 || s.layout === 4) setBoardLayout(s.layout);
+      }
+    } catch { /* localStorage 접근 불가 시 무시 */ }
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify({ slots: boardSlots, layout: boardLayout }));
+    } catch { /* 저장 실패 무시 */ }
+  }, [boardSlots, boardLayout]);
+
+  // 특정 자리에 레시피 영상을 넣거나(같은 자리 다시 누르면) 뺀다.
+  const putInSlot = (k: number, id: string) => {
+    setBoardSlots((prev) => {
+      const next = [...prev];
+      next[k] = prev[k] === id ? null : id;
+      return next;
+    });
+    if (k >= boardLayout) setBoardLayout(4); // 숨겨진 자리에 넣으면 4분할로 펼친다
+  };
+  const clearBoard = () => setBoardSlots([null, null, null, null]);
+  const boardFilled = boardSlots.some(Boolean);
+  // 유튜브 영상이 있는 레시피만 배치 버튼 노출
+  const hasPlayableVideo = (r: Recipe) => !!r.youtubeUrl && !!parseYT(r.youtubeUrl);
+  const anyPlayable = useMemo(() => recipes.some(hasPlayableVideo), [recipes]);
 
   // 레시피 탭: 요리 종류 필터(#3) + 코스별 보기(#4)
   const allSources = useMemo(() => {
@@ -511,6 +576,74 @@ export default function FridgePage() {
     { key: "timetable", label: "코스 짜기", desc: "코스 + 타임테이블" },
   ];
 
+  // 1/2/4분할 영상 보드. 바뀐 자리만 다시 그려 나머지 칸 재생은 유지된다.
+  const boardGridCls =
+    boardLayout === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2";
+  const renderBoard = () => (
+    <div className={cardCls}>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <p className="text-[11px] font-bold text-zinc-400 tracking-wider">동시에 보기</p>
+        <div className="flex items-center gap-2">
+          <div className="flex border border-zinc-200 rounded-[8px] overflow-hidden">
+            {([1, 2, 4] as const).map((n) => (
+              <button
+                key={n}
+                onClick={() => setBoardLayout(n)}
+                className={`px-3 py-1 text-[12px] font-bold transition-colors ${boardLayout === n ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:text-zinc-900"}`}
+              >{n}</button>
+            ))}
+          </div>
+          {boardFilled && (
+            <button onClick={clearBoard} className={btnSecondaryCls}>비우기</button>
+          )}
+        </div>
+      </div>
+      <div className={`grid gap-2 ${boardGridCls}`}>
+        {boardSlots.slice(0, boardLayout).map((id, k) => {
+          const r = id ? recipes.find((x) => x.id === id) : undefined;
+          const v = r ? parseYT(r.youtubeUrl) : null;
+          const pos = BOARD_POS[k];
+          return (
+            <div key={k} className="relative rounded-[10px] overflow-hidden bg-zinc-100 border border-zinc-200 flex flex-col aspect-video">
+              {r && v ? (
+                <>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border-b border-zinc-200">
+                    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-zinc-900 text-white flex-shrink-0">{pos.arrow}</span>
+                    <span className="text-[12px] font-semibold text-zinc-800 flex-1 min-w-0 truncate">{r.name}</span>
+                    <a
+                      href={`https://www.youtube.com/watch?v=${v.id}${v.start ? `&t=${v.start}s` : ""}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-900 flex-shrink-0"
+                    >유튜브</a>
+                    <button
+                      onClick={() => setBoardSlots((prev) => prev.map((s, i) => (i === k ? null : s)))}
+                      aria-label="닫기"
+                      className="text-zinc-400 hover:text-zinc-900 text-[14px] leading-none flex-shrink-0"
+                    >✕</button>
+                  </div>
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1${v.start ? `&start=${v.start}` : ""}`}
+                    title={r.name}
+                    className="flex-1 w-full bg-black"
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center text-zinc-400 p-4">
+                  <span className="text-[32px] leading-none text-zinc-300">{pos.arrow}</span>
+                  <span className="text-[12px] mt-1 break-keep">아래 목록에서 {pos.arrow} 버튼을 누르세요</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const renderRecipeCard = (r: Recipe) => {
     const items = recipeItems(r);
     const total = items.length;
@@ -548,12 +681,30 @@ export default function FridgePage() {
             </p>
             {r.rating > 0 && <div className="mt-1.5"><StarRating value={r.rating} size={14} /></div>}
           </div>
-          {isAdmin && (
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={(e) => { e.stopPropagation(); openEditForm(r); }} className={btnSecondaryCls}>수정</button>
-              <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }} className={btnDestructiveCls}>삭제</button>
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            {hasPlayableVideo(r) && (
+              <div className="grid grid-cols-2 gap-1">
+                {BOARD_POS.map((p) => {
+                  const filled = boardSlots[p.k] === r.id;
+                  return (
+                    <button
+                      key={p.k}
+                      onClick={(e) => { e.stopPropagation(); putInSlot(p.k, r.id); }}
+                      title={`${p.name}에 보기`}
+                      aria-label={`${r.name} ${p.name}에 보기`}
+                      className={`w-6 h-6 rounded-[5px] border text-[11px] leading-none flex items-center justify-center transition-colors ${filled ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-900 hover:text-zinc-900"}`}
+                    >{p.arrow}</button>
+                  );
+                })}
+              </div>
+            )}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <button onClick={(e) => { e.stopPropagation(); openEditForm(r); }} className={btnSecondaryCls}>수정</button>
+                <button onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }} className={btnDestructiveCls}>삭제</button>
+              </div>
+            )}
+          </div>
         </div>
 
         {total > 0 && (
@@ -746,6 +897,10 @@ export default function FridgePage() {
               <div className="text-center py-16 text-[13px] text-zinc-400 break-keep">아직 등록된 레시피가 없어요.</div>
             ) : (
               <div>
+                {boardFilled && renderBoard()}
+                {!boardFilled && anyPlayable && (
+                  <p className="text-[12px] text-zinc-400 break-keep mb-3">레시피의 <span className="font-semibold text-zinc-600">↖ ↗ ↙ ↘</span> 버튼을 누르면 영상을 최대 4개까지 나눠서 동시에 볼 수 있어요.</p>
+                )}
                 <div className="flex gap-1.5 flex-wrap mb-3">
                   <button onClick={() => setCuisineFilter("전체")} className={`px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${cuisineFilter === "전체" ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-400"}`}>전체</button>
                   {availableCuisines.map((c) => (
