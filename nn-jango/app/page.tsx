@@ -270,6 +270,7 @@ export default function FridgePage() {
   // 4분할 보드: 각 자리에 담긴 레시피 id(없으면 null) + 분할 수(1/2/4)
   const [boardSlots, setBoardSlots] = useState<(string | null)[]>([null, null, null, null]);
   const [boardLayout, setBoardLayout] = useState<1 | 2 | 4>(4);
+  const [boardExpanded, setBoardExpanded] = useState(false);
 
   const [ytQuery, setYtQuery] = useState("");
   const [ytLoading, setYtLoading] = useState(false);
@@ -333,6 +334,15 @@ export default function FridgePage() {
       localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify({ slots: boardSlots, layout: boardLayout }));
     } catch { /* 저장 실패 무시 */ }
   }, [boardSlots, boardLayout]);
+  // 보드 전체화면: Esc로 닫기 + 배경 스크롤 잠금
+  useEffect(() => {
+    if (!boardExpanded) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setBoardExpanded(false); };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; };
+  }, [boardExpanded]);
 
   // 특정 자리에 레시피 영상을 넣거나(같은 자리 다시 누르면) 뺀다.
   const putInSlot = (k: number, id: string) => {
@@ -579,10 +589,18 @@ export default function FridgePage() {
   ];
 
   // 1/2/4분할 영상 보드. 바뀐 자리만 다시 그려 나머지 칸 재생은 유지된다.
-  const boardGridCls =
-    boardLayout === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2";
+  const colsCls = boardLayout === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2";
+  const outerCls = boardExpanded
+    ? "fixed inset-0 z-[90] bg-white p-3 sm:p-4 flex flex-col"
+    : `${cardCls} flex flex-col`;
+  const gridCls = boardExpanded
+    ? `grid gap-2 flex-1 min-h-0 [grid-auto-rows:1fr] ${colsCls}`
+    : `grid gap-2 ${colsCls}`;
+  const slotCls = boardExpanded
+    ? "relative rounded-[10px] overflow-hidden bg-zinc-100 border border-zinc-200 flex flex-col min-h-0"
+    : "relative rounded-[10px] overflow-hidden bg-zinc-100 border border-zinc-200 flex flex-col aspect-video";
   const renderBoard = () => (
-    <div className={cardCls}>
+    <div className={outerCls}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <p className="text-[11px] font-bold text-zinc-400 tracking-wider">동시에 보기</p>
         <div className="flex items-center gap-2">
@@ -595,18 +613,22 @@ export default function FridgePage() {
               >{n}</button>
             ))}
           </div>
-          {boardFilled && (
+          <button
+            onClick={() => setBoardExpanded((v) => !v)}
+            className={btnSecondaryCls}
+          >{boardExpanded ? "✕ 닫기" : "⤢ 크게"}</button>
+          {boardFilled && !boardExpanded && (
             <button onClick={clearBoard} className={btnSecondaryCls}>비우기</button>
           )}
         </div>
       </div>
-      <div className={`grid gap-2 ${boardGridCls}`}>
+      <div className={gridCls}>
         {boardSlots.slice(0, boardLayout).map((id, k) => {
           const r = id ? recipes.find((x) => x.id === id) : undefined;
           const v = r ? recipeVideo(r) : null;
           const pos = BOARD_POS[k];
           return (
-            <div key={k} className="relative rounded-[10px] overflow-hidden bg-zinc-100 border border-zinc-200 flex flex-col aspect-video">
+            <div key={k} className={slotCls}>
               {r && v ? (
                 <>
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border-b border-zinc-200">
@@ -627,7 +649,7 @@ export default function FridgePage() {
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${v.id}?rel=0&playsinline=1${v.start ? `&start=${v.start}` : ""}`}
                     title={r.name}
-                    className="flex-1 w-full bg-black"
+                    className="flex-1 min-h-0 w-full bg-black"
                     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                     allowFullScreen
                     referrerPolicy="strict-origin-when-cross-origin"
