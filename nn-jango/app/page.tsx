@@ -346,7 +346,9 @@ export default function FridgePage() {
   const clearBoard = () => setBoardSlots([null, null, null, null]);
   const boardFilled = boardSlots.some(Boolean);
   // 유튜브 영상이 있는 레시피만 배치 버튼 노출
-  const hasPlayableVideo = (r: Recipe) => !!r.youtubeUrl && !!parseYT(r.youtubeUrl);
+  // 유튜브 영상 주소는 "유튜브 링크" 칸을 우선 보되, 없으면 "링크" 칸도 인식한다.
+  const recipeVideo = (r: Recipe) => parseYT(r.youtubeUrl) || (r.link ? parseYT(r.link) : null);
+  const hasPlayableVideo = (r: Recipe) => !!recipeVideo(r);
   const anyPlayable = useMemo(() => recipes.some(hasPlayableVideo), [recipes]);
 
   // 레시피 탭: 요리 종류 필터(#3) + 코스별 보기(#4)
@@ -601,7 +603,7 @@ export default function FridgePage() {
       <div className={`grid gap-2 ${boardGridCls}`}>
         {boardSlots.slice(0, boardLayout).map((id, k) => {
           const r = id ? recipes.find((x) => x.id === id) : undefined;
-          const v = r ? parseYT(r.youtubeUrl) : null;
+          const v = r ? recipeVideo(r) : null;
           const pos = BOARD_POS[k];
           return (
             <div key={k} className="relative rounded-[10px] overflow-hidden bg-zinc-100 border border-zinc-200 flex flex-col aspect-video">
