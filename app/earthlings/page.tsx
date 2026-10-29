@@ -43,9 +43,16 @@ const TableCols = ({ manage }: { manage: boolean }) => (
     <col style={{ width: "20%" }} />
     <col style={{ width: "12%" }} />
     <col style={{ width: "15%" }} />
-    {manage && <col style={{ width: 40 }} />}
+    {manage && <col style={{ width: 62 }} />}
   </colgroup>
 );
+
+const rowBtnStyle: React.CSSProperties = {
+  border: "none", borderRadius: 7, width: 24, height: 24,
+  cursor: "pointer", fontSize: 12, fontWeight: 700, lineHeight: 1, padding: 0,
+};
+const editBtnStyle: React.CSSProperties = { ...rowBtnStyle, background: "#EEF2FF", color: "#6366f1" };
+const delBtnStyle: React.CSSProperties = { ...rowBtnStyle, background: "#FEE2E2", color: "#DC2626" };
 
 const PredictionBadge = ({ value }: { value: Prediction }) => {
   const p = PREDICTION[value] ?? PREDICTION.none;
@@ -119,6 +126,7 @@ export default function EarthlingsPage() {
   const [viewMode, setViewMode] = useState<"card" | "table">("table");
   const [manageMode, setManageMode] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<{ kind: "baby" | "waiting"; id: number } | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [adminSecret, setAdminSecret] = useState<string | null>(null);
@@ -181,9 +189,50 @@ export default function EarthlingsPage() {
     return `${max + 1}호`;
   };
 
-  async function writeRow(payload: object) {
+  const closeModal = () => {
+    setShowAdd(false);
+    setEditing(null);
+    setForm(emptyForm);
+  };
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setShowAdd(true);
+  };
+
+  const openEditBaby = (baby: Baby) => {
+    setForm({
+      type: "baby",
+      name: baby.name,
+      parent1: baby.parent1,
+      parent2: baby.parent2,
+      birthdate: baby.birthdate,
+      gender: baby.gender,
+      status: baby.status,
+      housewarming: baby.housewarming,
+      prediction: baby.prediction,
+    });
+    setEditing({ kind: "baby", id: baby.id });
+    setShowAdd(true);
+  };
+
+  const openEditWaiting = (w: WaitingFamily) => {
+    setForm({
+      ...emptyForm,
+      type: "waiting",
+      parent1: w.parent1,
+      parent2: w.parent2,
+      housewarming: w.housewarming,
+      prediction: w.prediction,
+    });
+    setEditing({ kind: "waiting", id: w.id });
+    setShowAdd(true);
+  };
+
+  async function writeRow(payload: object, method: "POST" | "PATCH" = "POST") {
     const res = await fetch("/api/earthlings", {
-      method: "POST",
+      method,
       headers: { "content-type": "application/json", "x-admin-secret": adminSecret ?? "" },
       body: JSON.stringify(payload),
     });
@@ -208,43 +257,39 @@ export default function EarthlingsPage() {
         alert("이름, 엄마/아빠, 생년월일(예정일)은 필수예요.");
         return;
       }
-      payload = {
-        kind: "baby",
-        row: {
-          num: nextNum(),
-          parent1: form.parent1.trim(),
-          parent2: form.parent2.trim(),
-          name: form.name.trim(),
-          birthdate: form.birthdate,
-          housewarming: form.housewarming,
-          status: form.status,
-          gender: form.gender,
-          prediction: form.prediction,
-          sort_order: babies.length + 1,
-        },
+      const row = {
+        parent1: form.parent1.trim(),
+        parent2: form.parent2.trim(),
+        name: form.name.trim(),
+        birthdate: form.birthdate,
+        housewarming: form.housewarming,
+        status: form.status,
+        gender: form.gender,
+        prediction: form.prediction,
       };
+      payload = editing
+        ? { kind: "baby", id: editing.id, row }
+        : { kind: "baby", row: { ...row, num: nextNum(), sort_order: babies.length + 1 } };
     } else {
       if (!form.parent1.trim()) {
         alert("이름은 필수예요.");
         return;
       }
-      payload = {
-        kind: "waiting",
-        row: {
-          parent1: form.parent1.trim(),
-          parent2: form.parent2.trim(),
-          housewarming: form.housewarming,
-          prediction: form.prediction,
-          sort_order: waitingList.length + 1,
-        },
+      const row = {
+        parent1: form.parent1.trim(),
+        parent2: form.parent2.trim(),
+        housewarming: form.housewarming,
+        prediction: form.prediction,
       };
+      payload = editing
+        ? { kind: "waiting", id: editing.id, row }
+        : { kind: "waiting", row: { ...row, sort_order: waitingList.length + 1 } };
     }
     setSaving(true);
-    const ok = await writeRow(payload);
+    const ok = await writeRow(payload, editing ? "PATCH" : "POST");
     setSaving(false);
     if (!ok) return;
-    setForm(emptyForm);
-    setShowAdd(false);
+    closeModal();
     load();
   };
 
@@ -334,7 +379,7 @@ export default function EarthlingsPage() {
               )}
               {isAdmin && (
                 <button
-                  onClick={() => { setForm(emptyForm); setShowAdd(true); }}
+                  onClick={openAdd}
                   style={{ background: "#6366f1", color: "#fff", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                 >
                   + 추가
@@ -401,7 +446,10 @@ export default function EarthlingsPage() {
                 <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>일 남음</div>
               </div>
               {manageMode && (
-                <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700 }}>✕</button>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => openEditBaby(baby)} title="수정" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: 0 }}>✎</button>
+                  <button onClick={() => handleDeleteBaby(baby.id, baby.name)} title="삭제" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: 0 }}>✕</button>
+                </div>
               )}
             </div>
           </div>
@@ -417,7 +465,10 @@ export default function EarthlingsPage() {
               return (
                 <div key={baby.id} style={{ background: "#fff", borderRadius: 16, padding: "16px", border: isBdaySoon ? "2px solid #f97316" : "1px solid #EEEEF2", position: "relative" }}>
                   {manageMode && (
-                    <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={{ position: "absolute", top: 10, right: 10, background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 8, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700, zIndex: 2 }}>✕</button>
+                    <div style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: 4, zIndex: 2 }}>
+                      <button onClick={() => openEditBaby(baby)} style={editBtnStyle} title="수정">✎</button>
+                      <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={delBtnStyle} title="삭제">✕</button>
+                    </div>
                   )}
                   {!manageMode && isBdaySoon && (
                     <div style={{ position: "absolute", top: 10, right: 10, background: "#f97316", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 20, padding: "2px 8px" }}>
@@ -507,7 +558,10 @@ export default function EarthlingsPage() {
                       </td>
                       {manageMode && (
                         <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                          <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
+                          <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                            <button onClick={() => openEditBaby(baby)} style={editBtnStyle} title="수정">✎</button>
+                            <button onClick={() => handleDeleteBaby(baby.id, baby.name)} style={delBtnStyle} title="삭제">✕</button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -555,7 +609,10 @@ export default function EarthlingsPage() {
                       </td>
                       {manageMode && (
                         <td style={{ padding: "10px 8px", textAlign: "center" }}>
-                          <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={{ background: "#FEE2E2", color: "#DC2626", border: "none", borderRadius: 7, width: 24, height: 24, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
+                          <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                            <button onClick={() => openEditWaiting(w)} style={editBtnStyle} title="수정">✎</button>
+                            <button onClick={() => handleDeleteWaiting(w.id, w.parent1)} style={delBtnStyle} title="삭제">✕</button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -588,7 +645,7 @@ export default function EarthlingsPage() {
       {/* 추가 모달 */}
       {showAdd && (
         <div
-          onClick={() => setShowAdd(false)}
+          onClick={closeModal}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.48)", zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
         >
           <div
@@ -596,12 +653,12 @@ export default function EarthlingsPage() {
             style={{ background: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 480, padding: "24px 24px 32px", fontFamily: "'Pretendard','Apple SD Gothic Neo',sans-serif" }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#18181B", margin: 0 }}>추가하기</h3>
-              <button onClick={() => setShowAdd(false)} style={{ background: "none", border: "none", fontSize: 20, color: "#A1A1AA", cursor: "pointer" }}>✕</button>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: "#18181B", margin: 0 }}>{editing ? "수정하기" : "추가하기"}</h3>
+              <button onClick={closeModal} style={{ background: "none", border: "none", fontSize: 20, color: "#A1A1AA", cursor: "pointer" }}>✕</button>
             </div>
 
-            {/* 타입 토글 */}
-            <div style={{ display: "flex", background: "#F4F4F6", borderRadius: 10, padding: 3, marginBottom: 18 }}>
+            {/* 타입 토글 — 수정 중에는 종류를 바꿀 수 없음 */}
+            <div style={{ display: editing ? "none" : "flex", background: "#F4F4F6", borderRadius: 10, padding: 3, marginBottom: 18 }}>
               {([{ key: "baby", label: "아이" }, { key: "waiting", label: "대기" }] as const).map((t) => (
                 <button
                   key={t.key}
@@ -695,7 +752,7 @@ export default function EarthlingsPage() {
               disabled={saving}
               style={{ width: "100%", marginTop: 22, background: saving ? "#A5B4FC" : "#6366f1", color: "#fff", border: "none", borderRadius: 12, padding: "14px 0", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
             >
-              {saving ? "저장 중..." : "저장하기"}
+              {saving ? "저장 중..." : editing ? "수정 완료" : "저장하기"}
             </button>
           </div>
         </div>
